@@ -16,9 +16,6 @@ pub mod rule_config_serde;
 pub mod rules;
 pub mod utils;
 
-#[cfg(feature = "python")]
-pub mod python;
-
 pub use rules::heading_utils::{Heading, HeadingStyle};
 pub use rules::*;
 
