@@ -596,7 +596,7 @@ fn find_markdown_files(
     file_paths.retain(|path_str| {
         let path = Path::new(path_str);
         path.extension()
-            .map_or(false, |ext| ext == "md" || ext == "markdown")
+            .is_some_and(|ext| ext == "md" || ext == "markdown")
     });
     // -------------------------------------
 
