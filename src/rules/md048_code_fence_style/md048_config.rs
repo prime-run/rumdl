@@ -1,11 +1,15 @@
-use serde::{Deserialize, Serialize};
-use serde::ser::Serializer;
 use crate::rule_config_serde::RuleConfig;
 use crate::rules::code_fence_utils::CodeFenceStyle;
+use serde::ser::Serializer;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MD048Config {
-    #[serde(default = "default_style", serialize_with = "serialize_style", deserialize_with = "deserialize_style")]
+    #[serde(
+        default = "default_style",
+        serialize_with = "serialize_style",
+        deserialize_with = "deserialize_style"
+    )]
     pub style: CodeFenceStyle,
 }
 
@@ -37,7 +41,10 @@ where
         "backtick" => Ok(CodeFenceStyle::Backtick),
         "tilde" => Ok(CodeFenceStyle::Tilde),
         "consistent" => Ok(CodeFenceStyle::Consistent),
-        _ => Err(serde::de::Error::custom(format!("Invalid code fence style: {}", s))),
+        _ => Err(serde::de::Error::custom(format!(
+            "Invalid code fence style: {}",
+            s
+        ))),
     }
 }
 

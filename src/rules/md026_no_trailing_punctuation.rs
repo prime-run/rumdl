@@ -41,11 +41,11 @@ impl MD026NoTrailingPunctuation {
     pub fn new(punctuation: Option<String>) -> Self {
         Self {
             config: MD026Config {
-                punctuation: punctuation.unwrap_or_else(|| ".,;".to_string()),  // More restrictive by default
-            }
+                punctuation: punctuation.unwrap_or_else(|| ".,;".to_string()), // More restrictive by default
+            },
         }
     }
-    
+
     pub fn from_config_struct(config: MD026Config) -> Self {
         Self { config }
     }
@@ -75,7 +75,7 @@ impl MD026NoTrailingPunctuation {
     #[inline]
     fn has_trailing_punctuation(&self, text: &str, re: &Regex) -> bool {
         let trimmed = text.trim();
-        
+
         // Only apply lenient rules for the default punctuation setting
         // When users specify custom punctuation, they want strict behavior
         if self.config.punctuation == ".,;" {
@@ -84,7 +84,7 @@ impl MD026NoTrailingPunctuation {
                 return false;
             }
         }
-        
+
         re.is_match(trimmed)
     }
 
@@ -109,61 +109,103 @@ impl MD026NoTrailingPunctuation {
         }
     }
 
-
     /// Check if punctuation in a heading is legitimate and should be allowed
     #[inline]
     fn is_legitimate_punctuation(&self, text: &str) -> bool {
         let text = text.trim();
-        
+
         // Allow question marks in question headings
         if text.ends_with('?') {
             // Check if it's likely a genuine question
-            let question_words = ["what", "why", "how", "when", "where", "who", "which", "can", "should", "would", "could", "is", "are", "do", "does", "did"];
+            let question_words = [
+                "what", "why", "how", "when", "where", "who", "which", "can", "should", "would",
+                "could", "is", "are", "do", "does", "did",
+            ];
             let lower_text = text.to_lowercase();
-            if question_words.iter().any(|&word| lower_text.starts_with(word)) {
+            if question_words
+                .iter()
+                .any(|&word| lower_text.starts_with(word))
+            {
                 return true;
             }
         }
-        
+
         // Allow colons in common categorical/labeling patterns
         if text.ends_with(':') {
             // Common patterns that legitimately use colons
             let colon_patterns = [
-                "faq", "api", "note", "warning", "error", "info", "tip", "chapter", "step", 
-                "version", "part", "section", "method", "function", "class", "module",
-                "reference", "guide", "tutorial", "example", "demo", "usage", "syntax"
+                "faq",
+                "api",
+                "note",
+                "warning",
+                "error",
+                "info",
+                "tip",
+                "chapter",
+                "step",
+                "version",
+                "part",
+                "section",
+                "method",
+                "function",
+                "class",
+                "module",
+                "reference",
+                "guide",
+                "tutorial",
+                "example",
+                "demo",
+                "usage",
+                "syntax",
             ];
-            
+
             let lower_text = text.to_lowercase();
-            
+
             // Check if it starts with any of these patterns
-            if colon_patterns.iter().any(|&pattern| lower_text.starts_with(pattern)) {
+            if colon_patterns
+                .iter()
+                .any(|&pattern| lower_text.starts_with(pattern))
+            {
                 return true;
             }
-            
+
             // Check for numbered items like "Step 1:", "Chapter 2:", "Version 1.0:"
-            if regex::Regex::new(r"^(step|chapter|part|section|version)\s*\d").unwrap().is_match(&lower_text) {
+            if regex::Regex::new(r"^(step|chapter|part|section|version)\s*\d")
+                .unwrap()
+                .is_match(&lower_text)
+            {
                 return true;
             }
         }
-        
+
         // Allow exclamation marks in specific contexts (less common, but sometimes legitimate)
         if text.ends_with('!') {
             // Only allow for very specific patterns like "Important!", "New!", "Warning!"
-            let exclamation_patterns = ["important", "new", "warning", "alert", "notice", "attention"];
+            let exclamation_patterns = [
+                "important",
+                "new",
+                "warning",
+                "alert",
+                "notice",
+                "attention",
+            ];
             let lower_text = text.to_lowercase();
-            if exclamation_patterns.iter().any(|&pattern| lower_text.starts_with(pattern)) {
+            if exclamation_patterns
+                .iter()
+                .any(|&pattern| lower_text.starts_with(pattern))
+            {
                 return true;
             }
         }
-        
+
         false
     }
 
     // Remove trailing punctuation from text
     #[inline]
     fn remove_trailing_punctuation(&self, text: &str, re: &Regex) -> String {
-        re.replace_all(text.trim(), "").to_string()
+        re.replace_all(text.trim(), "")
+            .to_string()
     }
 
     // Optimized ATX heading fix using unified regex
@@ -214,8 +256,6 @@ impl MD026NoTrailingPunctuation {
             whitespace
         )
     }
-
-
 }
 
 impl Rule for MD026NoTrailingPunctuation {
@@ -247,14 +287,21 @@ impl Rule for MD026NoTrailingPunctuation {
             }
         } else {
             // For custom punctuation, check if any of those characters exist
-            let has_custom_punctuation = self.config.punctuation.chars().any(|c| content.contains(c));
+            let has_custom_punctuation = self
+                .config
+                .punctuation
+                .chars()
+                .any(|c| content.contains(c));
             if !has_custom_punctuation {
                 return Ok(Vec::new());
             }
         }
 
         // Check if we have any headings from pre-computed line info
-        let has_headings = ctx.lines.iter().any(|line| line.heading.is_some());
+        let has_headings = ctx
+            .lines
+            .iter()
+            .any(|line| line.heading.is_some());
         if !has_headings {
             return Ok(Vec::new());
         }
@@ -269,30 +316,38 @@ impl Rule for MD026NoTrailingPunctuation {
         for (line_num, line_info) in ctx.lines.iter().enumerate() {
             if let Some(heading) = &line_info.heading {
                 // Skip deeply indented headings (they're code blocks)
-                if line_info.indent >= 4 && matches!(heading.style, crate::lint_context::HeadingStyle::ATX) {
+                if line_info.indent >= 4
+                    && matches!(heading.style, crate::lint_context::HeadingStyle::ATX)
+                {
                     continue;
                 }
-                
+
                 // Check for trailing punctuation
                 if self.has_trailing_punctuation(&heading.text, &re) {
                     // Find the trailing punctuation
                     if let Some(punctuation_match) = re.find(&heading.text) {
                         let line = &line_info.content;
-                        
+
                         // For ATX headings, find the punctuation position in the line
                         let punctuation_pos_in_text = punctuation_match.start();
-                        let text_pos_in_line = line.find(&heading.text).unwrap_or(heading.content_column);
+                        let text_pos_in_line = line
+                            .find(&heading.text)
+                            .unwrap_or(heading.content_column);
                         let punctuation_start_in_line = text_pos_in_line + punctuation_pos_in_text;
                         let punctuation_len = punctuation_match.len();
-                        
+
                         let (start_line, start_col, end_line, end_col) = calculate_match_range(
                             line_num + 1, // Convert to 1-indexed
                             line,
                             punctuation_start_in_line,
                             punctuation_len,
                         );
-                        
-                        let last_char = heading.text.chars().last().unwrap_or(' ');
+
+                        let last_char = heading
+                            .text
+                            .chars()
+                            .last()
+                            .unwrap_or(' ');
                         warnings.push(LintWarning {
                             rule_name: Some(self.name()),
                             line: start_line,
@@ -301,13 +356,15 @@ impl Rule for MD026NoTrailingPunctuation {
                             end_column: end_col,
                             message: format!(
                                 "Heading '{}' ends with punctuation '{}'",
-                                heading.text,
-                                last_char
+                                heading.text, last_char
                             ),
                             severity: Severity::Warning,
                             fix: Some(Fix {
                                 range: self.get_line_byte_range(content, line_num + 1),
-                                replacement: if matches!(heading.style, crate::lint_context::HeadingStyle::ATX) {
+                                replacement: if matches!(
+                                    heading.style,
+                                    crate::lint_context::HeadingStyle::ATX
+                                ) {
                                     self.fix_atx_heading(line, &re)
                                 } else {
                                     self.fix_setext_heading(line, &re)
@@ -338,14 +395,21 @@ impl Rule for MD026NoTrailingPunctuation {
             }
         } else {
             // For custom punctuation, check if any of those characters exist
-            let has_custom_punctuation = self.config.punctuation.chars().any(|c| content.contains(c));
+            let has_custom_punctuation = self
+                .config
+                .punctuation
+                .chars()
+                .any(|c| content.contains(c));
             if !has_custom_punctuation {
                 return Ok(content.to_string());
             }
         }
 
         // Check if we have any headings from pre-computed line info
-        let has_headings = ctx.lines.iter().any(|line| line.heading.is_some());
+        let has_headings = ctx
+            .lines
+            .iter()
+            .any(|line| line.heading.is_some());
         if !has_headings {
             return Ok(content.to_string());
         }
@@ -356,23 +420,29 @@ impl Rule for MD026NoTrailingPunctuation {
         };
 
         let lines: Vec<&str> = content.lines().collect();
-        let mut fixed_lines: Vec<String> = lines.iter().map(|&s| s.to_string()).collect();
+        let mut fixed_lines: Vec<String> = lines
+            .iter()
+            .map(|&s| s.to_string())
+            .collect();
 
         // Use pre-computed heading information from LintContext
         for (line_num, line_info) in ctx.lines.iter().enumerate() {
             if let Some(heading) = &line_info.heading {
                 // Skip deeply indented headings (they're code blocks)
-                if line_info.indent >= 4 && matches!(heading.style, crate::lint_context::HeadingStyle::ATX) {
+                if line_info.indent >= 4
+                    && matches!(heading.style, crate::lint_context::HeadingStyle::ATX)
+                {
                     continue;
                 }
-                
+
                 // Check and fix trailing punctuation
                 if self.has_trailing_punctuation(&heading.text, &re) {
-                    fixed_lines[line_num] = if matches!(heading.style, crate::lint_context::HeadingStyle::ATX) {
-                        self.fix_atx_heading(&line_info.content, &re)
-                    } else {
-                        self.fix_setext_heading(&line_info.content, &re)
-                    };
+                    fixed_lines[line_num] =
+                        if matches!(heading.style, crate::lint_context::HeadingStyle::ATX) {
+                            self.fix_atx_heading(&line_info.content, &re)
+                        } else {
+                            self.fix_setext_heading(&line_info.content, &re)
+                        };
                 }
             }
         }
@@ -409,4 +479,3 @@ impl Rule for MD026NoTrailingPunctuation {
         Box::new(Self::from_config_struct(rule_config))
     }
 }
-

@@ -4,8 +4,8 @@
 //! See [docs/md014.md](../../docs/md014.md) for full documentation, configuration, and examples.
 
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, Severity};
-use crate::utils::range_utils::{calculate_match_range, LineIndex};
 use crate::rule_config_serde::RuleConfig;
+use crate::utils::range_utils::{LineIndex, calculate_match_range};
 use lazy_static::lazy_static;
 use regex::Regex;
 use toml;
@@ -43,7 +43,7 @@ impl MD014CommandsShowOutput {
             config: MD014Config { show_output },
         }
     }
-    
+
     pub fn from_config_struct(config: MD014Config) -> Self {
         Self { config }
     }
@@ -200,7 +200,10 @@ impl Rule for MD014CommandsShowOutput {
                                 let message = if command.is_empty() {
                                     "Command should show output (add example output or remove $ prompt)".to_string()
                                 } else {
-                                    format!("Command '{}' should show output (add example output or remove $ prompt)", command)
+                                    format!(
+                                        "Command '{}' should show output (add example output or remove $ prompt)",
+                                        command
+                                    )
                                 };
 
                                 warnings.push(LintWarning {
@@ -216,13 +219,20 @@ impl Rule for MD014CommandsShowOutput {
                                             // Replace the content line(s) between the fences
                                             let content_start_line = block_start_line + 1; // Line after opening fence (0-indexed)
                                             let content_end_line = line_num - 1; // Line before closing fence (0-indexed)
-                                            
+
                                             // Calculate byte range for the content lines including their newlines
-                                            let start_byte = _line_index.get_line_start_byte(content_start_line + 1).unwrap_or(0); // +1 for 1-indexed
-                                            let end_byte = _line_index.get_line_start_byte(content_end_line + 2).unwrap_or(start_byte); // +2 to include newline after last content line
+                                            let start_byte = _line_index
+                                                .get_line_start_byte(content_start_line + 1)
+                                                .unwrap_or(0); // +1 for 1-indexed
+                                            let end_byte = _line_index
+                                                .get_line_start_byte(content_end_line + 2)
+                                                .unwrap_or(start_byte); // +2 to include newline after last content line
                                             start_byte..end_byte
                                         },
-                                        replacement: format!("{}\n", self.fix_command_block(&current_block)),
+                                        replacement: format!(
+                                            "{}\n",
+                                            self.fix_command_block(&current_block)
+                                        ),
                                     }),
                                 });
                             }
@@ -299,10 +309,13 @@ impl Rule for MD014CommandsShowOutput {
         let default_config = MD014Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD014Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD014Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }

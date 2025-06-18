@@ -1,8 +1,8 @@
-use markdown::{mdast::Node, to_mdast, ParseOptions};
-use std::panic;
 use crate::utils::code_block_utils::CodeBlockUtils;
-use regex::Regex;
 use lazy_static::lazy_static;
+use markdown::{ParseOptions, mdast::Node, to_mdast};
+use regex::Regex;
+use std::panic;
 
 lazy_static! {
     // Comprehensive link pattern that captures both inline and reference links
@@ -266,13 +266,13 @@ pub struct LintContext<'a> {
     pub ast: Node, // The root of the AST
     pub line_offsets: Vec<usize>,
     pub code_blocks: Vec<(usize, usize)>, // Cached code block ranges (not including inline code spans)
-    pub lines: Vec<LineInfo>, // Pre-computed line information
-    pub links: Vec<ParsedLink>, // Pre-parsed links
-    pub images: Vec<ParsedImage>, // Pre-parsed images
+    pub lines: Vec<LineInfo>,             // Pre-computed line information
+    pub links: Vec<ParsedLink>,           // Pre-parsed links
+    pub images: Vec<ParsedImage>,         // Pre-parsed images
     pub reference_defs: Vec<ReferenceDef>, // Reference definitions
-    pub code_spans: Vec<CodeSpan>, // Pre-parsed inline code spans
-    pub list_blocks: Vec<ListBlock>, // Pre-parsed list blocks
-    pub bare_urls: Vec<BareUrl>, // Pre-parsed bare URLs and emails
+    pub code_spans: Vec<CodeSpan>,        // Pre-parsed inline code spans
+    pub list_blocks: Vec<ListBlock>,      // Pre-parsed list blocks
+    pub bare_urls: Vec<BareUrl>,          // Pre-parsed bare URLs and emails
 }
 
 impl<'a> LintContext<'a> {
@@ -304,7 +304,14 @@ impl<'a> LintContext<'a> {
             let reference_defs = Self::parse_reference_defs(content, &lines);
             let code_spans = Self::parse_code_spans(content, &lines);
             let list_blocks = Self::parse_list_blocks(&lines);
-            let bare_urls = Self::parse_bare_urls(content, &lines, &code_blocks, &links, &images, &reference_defs);
+            let bare_urls = Self::parse_bare_urls(
+                content,
+                &lines,
+                &code_blocks,
+                &links,
+                &images,
+                &reference_defs,
+            );
 
             return Self {
                 content,
@@ -366,7 +373,14 @@ impl<'a> LintContext<'a> {
         let reference_defs = Self::parse_reference_defs(content, &lines);
         let code_spans = Self::parse_code_spans(content, &lines);
         let list_blocks = Self::parse_list_blocks(&lines);
-        let bare_urls = Self::parse_bare_urls(content, &lines, &code_blocks, &links, &images, &reference_defs);
+        let bare_urls = Self::parse_bare_urls(
+            content,
+            &lines,
+            &code_blocks,
+            &links,
+            &images,
+            &reference_defs,
+        );
 
         Self {
             content,
@@ -406,7 +420,9 @@ impl<'a> LintContext<'a> {
         }
 
         // Check inline code spans
-        self.code_spans.iter().any(|span| pos >= span.byte_offset && pos < span.byte_end)
+        self.code_spans
+            .iter()
+            .any(|span| pos >= span.byte_offset && pos < span.byte_end)
     }
 
     /// Get line information by line number (1-indexed)
@@ -420,7 +436,8 @@ impl<'a> LintContext<'a> {
 
     /// Get byte offset for a line number (1-indexed)
     pub fn line_to_byte_offset(&self, line_num: usize) -> Option<usize> {
-        self.line_info(line_num).map(|info| info.byte_offset)
+        self.line_info(line_num)
+            .map(|info| info.byte_offset)
     }
 
     /// Get URL for a reference link/image by its ID
@@ -450,20 +467,24 @@ impl<'a> LintContext<'a> {
 
     /// Check if a line is part of a list block
     pub fn is_in_list_block(&self, line_num: usize) -> bool {
-        self.list_blocks.iter().any(|block|
-            line_num >= block.start_line && line_num <= block.end_line
-        )
+        self.list_blocks
+            .iter()
+            .any(|block| line_num >= block.start_line && line_num <= block.end_line)
     }
 
     /// Get the list block containing a specific line
     pub fn list_block_for_line(&self, line_num: usize) -> Option<&ListBlock> {
-        self.list_blocks.iter().find(|block|
-            line_num >= block.start_line && line_num <= block.end_line
-        )
+        self.list_blocks
+            .iter()
+            .find(|block| line_num >= block.start_line && line_num <= block.end_line)
     }
 
     /// Parse all links in the content
-    fn parse_links(content: &str, lines: &[LineInfo], code_blocks: &[(usize, usize)]) -> Vec<ParsedLink> {
+    fn parse_links(
+        content: &str,
+        lines: &[LineInfo],
+        code_blocks: &[(usize, usize)],
+    ) -> Vec<ParsedLink> {
         let mut links = Vec::new();
 
         // Parse links across the entire content, not line by line
@@ -514,7 +535,10 @@ impl<'a> LintContext<'a> {
                 // which is what we want
             }
 
-            let text = cap.get(1).map_or("", |m| m.as_str()).to_string();
+            let text = cap
+                .get(1)
+                .map_or("", |m| m.as_str())
+                .to_string();
 
             if let Some(inline_url) = cap.get(2) {
                 // Inline link
@@ -556,7 +580,11 @@ impl<'a> LintContext<'a> {
     }
 
     /// Parse all images in the content
-    fn parse_images(content: &str, lines: &[LineInfo], code_blocks: &[(usize, usize)]) -> Vec<ParsedImage> {
+    fn parse_images(
+        content: &str,
+        lines: &[LineInfo],
+        code_blocks: &[(usize, usize)],
+    ) -> Vec<ParsedImage> {
         let mut images = Vec::new();
 
         // Parse images across the entire content, not line by line
@@ -602,7 +630,10 @@ impl<'a> LintContext<'a> {
                 // which is what we want
             }
 
-            let alt_text = cap.get(1).map_or("", |m| m.as_str()).to_string();
+            let alt_text = cap
+                .get(1)
+                .map_or("", |m| m.as_str())
+                .to_string();
 
             if let Some(inline_url) = cap.get(2) {
                 // Inline image
@@ -657,9 +688,14 @@ impl<'a> LintContext<'a> {
             let line_num = line_idx + 1;
 
             if let Some(cap) = REF_DEF_PATTERN.captures(line) {
-                let id = cap.get(1).unwrap().as_str().to_lowercase();
+                let id = cap
+                    .get(1)
+                    .unwrap()
+                    .as_str()
+                    .to_lowercase();
                 let url = cap.get(2).unwrap().as_str().to_string();
-                let title = cap.get(3)
+                let title = cap
+                    .get(3)
                     .or_else(|| cap.get(4))
                     .map(|m| m.as_str().to_string());
 
@@ -676,7 +712,11 @@ impl<'a> LintContext<'a> {
     }
 
     /// Pre-compute line information
-    fn compute_line_info(content: &str, line_offsets: &[usize], code_blocks: &[(usize, usize)]) -> Vec<LineInfo> {
+    fn compute_line_info(
+        content: &str,
+        line_offsets: &[usize],
+        code_blocks: &[(usize, usize)],
+    ) -> Vec<LineInfo> {
         let mut lines = Vec::new();
         let content_lines: Vec<&str> = content.lines().collect();
 
@@ -695,7 +735,10 @@ impl<'a> LintContext<'a> {
         let blockquote_regex_full = regex::Regex::new(r"^(\s*)(>+)(\s*)(.*)$").unwrap();
 
         for (i, line) in content_lines.iter().enumerate() {
-            let byte_offset = line_offsets.get(i).copied().unwrap_or(0);
+            let byte_offset = line_offsets
+                .get(i)
+                .copied()
+                .unwrap_or(0);
             let indent = line.len() - line.trim_start().len();
             // For blank detection, consider blockquote context
             let is_blank = if let Some(caps) = blockquote_regex.captures(line) {
@@ -712,22 +755,29 @@ impl<'a> LintContext<'a> {
                 // Inline code spans are typically on a single line
                 let block_content = &content[start..end];
                 let is_multiline = block_content.contains('\n');
-                let is_fenced = block_content.starts_with("```") || block_content.starts_with("~~~");
-                let is_indented = !is_fenced && block_content.lines().all(|l| l.starts_with("    ") || l.starts_with("\t") || l.trim().is_empty());
+                let is_fenced =
+                    block_content.starts_with("```") || block_content.starts_with("~~~");
+                let is_indented = !is_fenced
+                    && block_content.lines().all(|l| {
+                        l.starts_with("    ") || l.starts_with("\t") || l.trim().is_empty()
+                    });
 
-                byte_offset >= start && byte_offset < end && (is_multiline || is_fenced || is_indented)
+                byte_offset >= start
+                    && byte_offset < end
+                    && (is_multiline || is_fenced || is_indented)
             });
 
             // Detect list items
             let list_item = if !in_code_block && !is_blank {
                 // Strip blockquote prefix if present for list detection
-                let (line_for_list_check, blockquote_prefix_len) = if let Some(caps) = blockquote_regex.captures(line) {
-                    let prefix = caps.get(1).unwrap().as_str();
-                    let content = caps.get(2).unwrap().as_str();
-                    (content, prefix.len())
-                } else {
-                    (line.as_ref(), 0)
-                };
+                let (line_for_list_check, blockquote_prefix_len) =
+                    if let Some(caps) = blockquote_regex.captures(line) {
+                        let prefix = caps.get(1).unwrap().as_str();
+                        let content = caps.get(2).unwrap().as_str();
+                        (content, prefix.len())
+                    } else {
+                        (line.as_ref(), 0)
+                    };
 
                 if let Some(caps) = unordered_regex.captures(line_for_list_check) {
                     let leading_spaces = caps.get(1).map_or("", |m| m.as_str());
@@ -740,16 +790,30 @@ impl<'a> LintContext<'a> {
                     // Check if this is likely emphasis or not a list item
                     if spacing.is_empty() {
                         // No space after marker - check if it's likely emphasis or just text
-                        if marker == "*" && content.ends_with('*') && !content[..content.len()-1].contains('*') {
+                        if marker == "*"
+                            && content.ends_with('*')
+                            && !content[..content.len() - 1].contains('*')
+                        {
                             // Likely emphasis like *text*
                             None
                         } else if marker == "*" && content.starts_with('*') {
                             // Likely bold emphasis like **text** or horizontal rule like ***
                             None
-                        } else if (marker == "*" || marker == "-") && content.chars().all(|c| c == marker.chars().next().unwrap()) && content.len() >= 2 {
+                        } else if (marker == "*" || marker == "-")
+                            && content
+                                .chars()
+                                .all(|c| c == marker.chars().next().unwrap())
+                            && content.len() >= 2
+                        {
                             // Likely horizontal rule like *** or ---
                             None
-                        } else if content.len() > 0 && content.chars().next().unwrap().is_alphabetic() {
+                        } else if content.len() > 0
+                            && content
+                                .chars()
+                                .next()
+                                .unwrap()
+                                .is_alphabetic()
+                        {
                             // Single word starting with marker, likely not intended as list
                             // This matches markdownlint behavior
                             None
@@ -783,7 +847,14 @@ impl<'a> LintContext<'a> {
                     let content_column = marker_column + marker.len() + spacing.len();
 
                     // Check if this is likely not a list item
-                    if spacing.is_empty() && content.len() > 0 && content.chars().next().unwrap().is_alphabetic() {
+                    if spacing.is_empty()
+                        && content.len() > 0
+                        && content
+                            .chars()
+                            .next()
+                            .unwrap()
+                            .is_alphabetic()
+                    {
                         // No space after marker and starts with alphabetic, likely not intended as list
                         // This matches markdownlint behavior
                         None
@@ -848,7 +919,10 @@ impl<'a> LintContext<'a> {
                 let spaces_after = caps.get(3).map_or("", |m| m.as_str());
                 let content = caps.get(4).map_or("", |m| m.as_str());
 
-                let nesting_level = markers.chars().filter(|&c| c == '>').count();
+                let nesting_level = markers
+                    .chars()
+                    .filter(|&c| c == '>')
+                    .count();
                 let marker_column = indent_str.len();
 
                 // Build the prefix (indentation + markers + space)
@@ -895,13 +969,20 @@ impl<'a> LintContext<'a> {
                     if let Some(last_hash_pos) = trimmed_rest.rfind('#') {
                         // Look for the start of the hash sequence
                         let mut start_of_hashes = last_hash_pos;
-                        while start_of_hashes > 0 && trimmed_rest.chars().nth(start_of_hashes - 1) == Some('#') {
+                        while start_of_hashes > 0
+                            && trimmed_rest
+                                .chars()
+                                .nth(start_of_hashes - 1)
+                                == Some('#')
+                        {
                             start_of_hashes -= 1;
                         }
 
                         // Check if this is a valid closing sequence (all hashes to end of line)
                         let potential_closing = &trimmed_rest[start_of_hashes..];
-                        let is_all_hashes = potential_closing.chars().all(|c| c == '#');
+                        let is_all_hashes = potential_closing
+                            .chars()
+                            .all(|c| c == '#');
 
                         if is_all_hashes {
                             // This is a closing sequence, regardless of spacing
@@ -940,7 +1021,11 @@ impl<'a> LintContext<'a> {
 
                     let underline = next_line.trim();
                     let level = if underline.starts_with('=') { 1 } else { 2 };
-                    let style = if level == 1 { HeadingStyle::Setext1 } else { HeadingStyle::Setext2 };
+                    let style = if level == 1 {
+                        HeadingStyle::Setext1
+                    } else {
+                        HeadingStyle::Setext2
+                    };
 
                     lines[i].heading = Some(HeadingInfo {
                         level,
@@ -979,7 +1064,10 @@ impl<'a> LintContext<'a> {
                 // Skip if this backtick is inside a code block
                 let mut in_code_block = false;
                 for (line_idx, line_info) in lines.iter().enumerate() {
-                    if start_pos >= line_info.byte_offset && (line_idx + 1 >= lines.len() || start_pos < lines[line_idx + 1].byte_offset) {
+                    if start_pos >= line_info.byte_offset
+                        && (line_idx + 1 >= lines.len()
+                            || start_pos < lines[line_idx + 1].byte_offset)
+                    {
                         in_code_block = line_info.in_code_block;
                         break;
                     }
@@ -1096,7 +1184,10 @@ impl<'a> LintContext<'a> {
 
             // Extract blockquote prefix if any
             let blockquote_prefix = if let Some(caps) = blockquote_re.captures(&line_info.content) {
-                caps.get(0).unwrap().as_str().to_string()
+                caps.get(0)
+                    .unwrap()
+                    .as_str()
+                    .to_string()
             } else {
                 String::new()
             };
@@ -1109,15 +1200,15 @@ impl<'a> LintContext<'a> {
 
                 if let Some(ref mut block) = current_block {
                     // Check if this continues the current block
-                    let same_type = (block.is_ordered && list_item.is_ordered) ||
-                                   (!block.is_ordered && !list_item.is_ordered);
+                    let same_type = (block.is_ordered && list_item.is_ordered)
+                        || (!block.is_ordered && !list_item.is_ordered);
                     let same_context = block.blockquote_prefix == blockquote_prefix;
                     let reasonable_distance = line_num <= last_list_item_line + 2; // Allow one blank line
 
                     // For unordered lists, also check marker consistency
-                    let marker_compatible = block.is_ordered ||
-                                          block.marker.is_none() ||
-                                          block.marker.as_ref() == Some(&list_item.marker);
+                    let marker_compatible = block.is_ordered
+                        || block.marker.is_none()
+                        || block.marker.as_ref() == Some(&list_item.marker);
 
                     // Check if there's non-list content between the last item and this one
                     let has_non_list_content = {
@@ -1126,7 +1217,10 @@ impl<'a> LintContext<'a> {
                             let check_idx = check_line - 1;
                             if check_idx < lines.len() {
                                 let check_info = &lines[check_idx];
-                                if !check_info.is_blank && !check_info.in_code_block && check_info.list_item.is_none() {
+                                if !check_info.is_blank
+                                    && !check_info.in_code_block
+                                    && check_info.list_item.is_none()
+                                {
                                     // Found non-blank, non-list content
                                     if check_info.indent < 2 {
                                         // Not indented, so it's not list continuation
@@ -1139,7 +1233,12 @@ impl<'a> LintContext<'a> {
                         found_non_list
                     };
 
-                    if same_type && same_context && reasonable_distance && marker_compatible && !has_non_list_content {
+                    if same_type
+                        && same_context
+                        && reasonable_distance
+                        && marker_compatible
+                        && !has_non_list_content
+                    {
                         // Extend current block
                         block.end_line = line_num;
                         block.item_lines.push(line_num);
@@ -1159,7 +1258,11 @@ impl<'a> LintContext<'a> {
                             start_line: line_num,
                             end_line: line_num,
                             is_ordered: list_item.is_ordered,
-                            marker: if list_item.is_ordered { None } else { Some(list_item.marker.clone()) },
+                            marker: if list_item.is_ordered {
+                                None
+                            } else {
+                                Some(list_item.marker.clone())
+                            },
                             blockquote_prefix: blockquote_prefix.clone(),
                             item_lines: vec![line_num],
                             nesting_level: nesting,
@@ -1171,7 +1274,11 @@ impl<'a> LintContext<'a> {
                         start_line: line_num,
                         end_line: line_num,
                         is_ordered: list_item.is_ordered,
-                        marker: if list_item.is_ordered { None } else { Some(list_item.marker.clone()) },
+                        marker: if list_item.is_ordered {
+                            None
+                        } else {
+                            Some(list_item.marker.clone())
+                        },
                         blockquote_prefix,
                         item_lines: vec![line_num],
                         nesting_level: nesting,
@@ -1205,17 +1312,21 @@ impl<'a> LintContext<'a> {
                     if check_idx < lines.len() {
                         let next_line = &lines[check_idx];
                         // Check if followed by indented content (list continuation)
-                        if !next_line.in_code_block && next_line.indent >= current_indent_level + 2 {
+                        if !next_line.in_code_block && next_line.indent >= current_indent_level + 2
+                        {
                             found_continuation = true;
                         }
                         // Check if followed by another list item at the same level
                         else if !next_line.in_code_block && next_line.list_item.is_some() {
                             if let Some(item) = &next_line.list_item {
-                                let next_blockquote_prefix = blockquote_re.find(&next_line.content)
+                                let next_blockquote_prefix = blockquote_re
+                                    .find(&next_line.content)
                                     .map_or(String::new(), |m| m.as_str().to_string());
-                                if item.marker_column == current_indent_level &&
-                                   item.is_ordered == block.is_ordered &&
-                                   block.blockquote_prefix.trim() == next_blockquote_prefix.trim() {
+                                if item.marker_column == current_indent_level
+                                    && item.is_ordered == block.is_ordered
+                                    && block.blockquote_prefix.trim()
+                                        == next_blockquote_prefix.trim()
+                                {
                                     found_continuation = true;
                                 }
                             }
@@ -1232,21 +1343,28 @@ impl<'a> LintContext<'a> {
                     }
                 } else {
                     // Check for lazy continuation - non-indented line immediately after a list item
-                    let is_lazy_continuation = last_list_item_line == line_num - 1 &&
-                                             !line_info.heading.is_some() &&
-                                             !line_info.is_blank;
+                    let is_lazy_continuation = last_list_item_line == line_num - 1
+                        && !line_info.heading.is_some()
+                        && !line_info.is_blank;
 
                     if is_lazy_continuation {
                         // Additional check: if the line starts with uppercase and looks like a new sentence,
                         // it's probably not a continuation
                         let content_to_check = if !blockquote_prefix.is_empty() {
                             // Strip blockquote prefix to check the actual content
-                            line_info.content.strip_prefix(&blockquote_prefix).unwrap_or(&line_info.content).trim()
+                            line_info
+                                .content
+                                .strip_prefix(&blockquote_prefix)
+                                .unwrap_or(&line_info.content)
+                                .trim()
                         } else {
                             line_info.content.trim()
                         };
 
-                        let starts_with_uppercase = content_to_check.chars().next().map_or(false, |c| c.is_uppercase());
+                        let starts_with_uppercase = content_to_check
+                            .chars()
+                            .next()
+                            .map_or(false, |c| c.is_uppercase());
 
                         // If it starts with uppercase and the previous line ended with punctuation,
                         // it's likely a new paragraph, not a continuation
@@ -1290,8 +1408,11 @@ impl<'a> LintContext<'a> {
         let mut bare_urls = Vec::new();
 
         // Quick check - if no URLs or emails, return empty
-        if !content.contains("http://") && !content.contains("https://") &&
-           !content.contains("ftp://") && !content.contains('@') {
+        if !content.contains("http://")
+            && !content.contains("https://")
+            && !content.contains("ftp://")
+            && !content.contains('@')
+        {
             return bare_urls;
         }
 
@@ -1341,7 +1462,8 @@ impl<'a> LintContext<'a> {
             }
 
             // Skip if within any excluded range (link/image)
-            let in_any_range = merged.iter()
+            let in_any_range = merged
+                .iter()
                 .any(|(start, end)| url_start >= *start && url_end <= *end);
             if in_any_range {
                 continue;
@@ -1390,9 +1512,17 @@ impl<'a> LintContext<'a> {
             };
             let after = content.get(url_end..url_end + 1);
             let is_valid_boundary = before.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
             }) && after.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
             });
             if !is_valid_boundary {
                 continue;
@@ -1439,7 +1569,8 @@ impl<'a> LintContext<'a> {
             }
 
             // Skip if within any excluded range (link/image)
-            let in_any_range = merged.iter()
+            let in_any_range = merged
+                .iter()
                 .any(|(start, end)| email_start >= *start && email_end <= *end);
             if in_any_range {
                 continue;
@@ -1453,9 +1584,19 @@ impl<'a> LintContext<'a> {
             };
             let after = content.get(email_end..email_end + 1);
             let is_valid_boundary = before.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_" && c != "."
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
+                    && c != "."
             }) && after.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_" && c != "."
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
+                    && c != "."
             });
             if !is_valid_boundary {
                 continue;
@@ -1507,16 +1648,17 @@ fn merge_adjacent_list_blocks(list_blocks: &mut Vec<ListBlock>) {
         let consecutive = next.start_line == current.end_line + 1;
         let only_blank_between = next.start_line == current.end_line + 2;
 
-        let should_merge =
-            next.is_ordered == current.is_ordered &&
-            next.blockquote_prefix == current.blockquote_prefix &&
-            next.nesting_level == current.nesting_level &&
-            (consecutive || (only_blank_between && current.marker == next.marker));
+        let should_merge = next.is_ordered == current.is_ordered
+            && next.blockquote_prefix == current.blockquote_prefix
+            && next.nesting_level == current.nesting_level
+            && (consecutive || (only_blank_between && current.marker == next.marker));
 
         if should_merge {
             // Merge blocks
             current.end_line = next.end_line;
-            current.item_lines.extend_from_slice(&next.item_lines);
+            current
+                .item_lines
+                .extend_from_slice(&next.item_lines);
 
             // Update marker consistency
             if !current.is_ordered && current.marker.is_some() && next.marker.is_some() {

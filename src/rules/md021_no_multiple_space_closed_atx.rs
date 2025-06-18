@@ -2,7 +2,7 @@
 ///
 /// See [docs/md021.md](../../docs/md021.md) for full documentation, configuration, and examples.
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -82,7 +82,7 @@ impl Rule for MD021NoMultipleSpaceClosedAtx {
     fn check(&self, ctx: &crate::lint_context::LintContext) -> LintResult {
         let line_index = LineIndex::new(ctx.content.to_string());
         let mut warnings = Vec::new();
-        
+
         // Check all closed ATX headings from cached info
         for (line_num, line_info) in ctx.lines.iter().enumerate() {
             if let Some(heading) = &line_info.heading {
@@ -90,14 +90,18 @@ impl Rule for MD021NoMultipleSpaceClosedAtx {
                 if line_info.indent >= 4 {
                     continue;
                 }
-                
+
                 // Only check closed ATX headings
-                if matches!(heading.style, crate::lint_context::HeadingStyle::ATX) && heading.has_closing_sequence {
+                if matches!(heading.style, crate::lint_context::HeadingStyle::ATX)
+                    && heading.has_closing_sequence
+                {
                     let line = &line_info.content;
-                    
+
                     // Check if line matches closed ATX pattern with multiple spaces
                     if self.is_closed_atx_heading_with_multiple_spaces(line) {
-                        let captures = CLOSED_ATX_MULTIPLE_SPACE_PATTERN.captures(line).unwrap();
+                        let captures = CLOSED_ATX_MULTIPLE_SPACE_PATTERN
+                            .captures(line)
+                            .unwrap();
                         let _indentation = captures.get(1).unwrap();
                         let opening_hashes = captures.get(2).unwrap();
                         let (start_spaces, end_spaces) = self.count_spaces(line);
@@ -137,7 +141,11 @@ impl Rule for MD021NoMultipleSpaceClosedAtx {
                             end_column: end_col,
                             severity: Severity::Warning,
                             fix: Some(Fix {
-                                range: line_index.line_col_to_byte_range_with_length(start_line, 1, line.len()),
+                                range: line_index.line_col_to_byte_range_with_length(
+                                    start_line,
+                                    1,
+                                    line.len(),
+                                ),
                                 replacement,
                             }),
                         });
@@ -151,37 +159,38 @@ impl Rule for MD021NoMultipleSpaceClosedAtx {
 
     fn fix(&self, ctx: &crate::lint_context::LintContext) -> Result<String, LintError> {
         let mut lines = Vec::new();
-        
+
         for (_line_num, line_info) in ctx.lines.iter().enumerate() {
             let mut fixed = false;
-            
+
             if let Some(heading) = &line_info.heading {
                 // Skip headings indented 4+ spaces (they're code blocks)
                 if line_info.indent >= 4 {
                     lines.push(line_info.content.clone());
                     continue;
                 }
-                
+
                 // Fix closed ATX headings with multiple spaces
-                if matches!(heading.style, crate::lint_context::HeadingStyle::ATX) && 
-                   heading.has_closing_sequence &&
-                   self.is_closed_atx_heading_with_multiple_spaces(&line_info.content) {
+                if matches!(heading.style, crate::lint_context::HeadingStyle::ATX)
+                    && heading.has_closing_sequence
+                    && self.is_closed_atx_heading_with_multiple_spaces(&line_info.content)
+                {
                     lines.push(self.fix_closed_atx_heading(&line_info.content));
                     fixed = true;
                 }
             }
-            
+
             if !fixed {
                 lines.push(line_info.content.clone());
             }
         }
-        
+
         // Reconstruct content preserving line endings
         let mut result = lines.join("\n");
         if ctx.content.ends_with('\n') && !result.ends_with('\n') {
             result.push('\n');
         }
-        
+
         Ok(result)
     }
 
@@ -211,7 +220,6 @@ impl Rule for MD021NoMultipleSpaceClosedAtx {
         Box::new(MD021NoMultipleSpaceClosedAtx::new())
     }
 }
-
 
 #[cfg(test)]
 mod tests {

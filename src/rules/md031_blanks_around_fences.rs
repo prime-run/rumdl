@@ -3,7 +3,7 @@
 /// See [docs/md031.md](../../docs/md031.md) for full documentation, configuration, and examples.
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
 use crate::utils::document_structure::{DocumentStructure, DocumentStructureExtensions};
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -53,14 +53,20 @@ impl Rule for MD031BlanksAroundFences {
 
             // Determine fence marker if this is a fence line
             let fence_marker = if trimmed.starts_with("```") {
-                let backtick_count = trimmed.chars().take_while(|&c| c == '`').count();
+                let backtick_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '`')
+                    .count();
                 if backtick_count >= 3 {
                     Some("`".repeat(backtick_count))
                 } else {
                     None
                 }
             } else if trimmed.starts_with("~~~") {
-                let tilde_count = trimmed.chars().take_while(|&c| c == '~').count();
+                let tilde_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '~')
+                    .count();
                 if tilde_count >= 3 {
                     Some("~".repeat(tilde_count))
                 } else {
@@ -74,8 +80,11 @@ impl Rule for MD031BlanksAroundFences {
                 if in_code_block {
                     // We're inside a code block, check if this closes it
                     if let Some(ref current_marker) = current_fence_marker {
-                        if trimmed.starts_with(current_marker) &&
-                           trimmed[current_marker.len()..].trim().is_empty() {
+                        if trimmed.starts_with(current_marker)
+                            && trimmed[current_marker.len()..]
+                                .trim()
+                                .is_empty()
+                        {
                             // This closes the current code block
                             in_code_block = false;
                             current_fence_marker = None;
@@ -94,8 +103,11 @@ impl Rule for MD031BlanksAroundFences {
                                     message: "No blank line after fenced code block".to_string(),
                                     severity: Severity::Warning,
                                     fix: Some(Fix {
-                                        range: line_index
-                                            .line_col_to_byte_range_with_length(i + 1, lines[i].len() + 1, 0),
+                                        range: line_index.line_col_to_byte_range_with_length(
+                                            i + 1,
+                                            lines[i].len() + 1,
+                                            0,
+                                        ),
                                         replacement: "\n".to_string(),
                                     }),
                                 });
@@ -157,14 +169,20 @@ impl Rule for MD031BlanksAroundFences {
 
             // Determine fence marker if this is a fence line
             let fence_marker = if trimmed.starts_with("```") {
-                let backtick_count = trimmed.chars().take_while(|&c| c == '`').count();
+                let backtick_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '`')
+                    .count();
                 if backtick_count >= 3 {
                     Some("`".repeat(backtick_count))
                 } else {
                     None
                 }
             } else if trimmed.starts_with("~~~") {
-                let tilde_count = trimmed.chars().take_while(|&c| c == '~').count();
+                let tilde_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '~')
+                    .count();
                 if tilde_count >= 3 {
                     Some("~".repeat(tilde_count))
                 } else {
@@ -178,8 +196,11 @@ impl Rule for MD031BlanksAroundFences {
                 if in_code_block {
                     // We're inside a code block, check if this closes it
                     if let Some(ref current_marker) = current_fence_marker {
-                        if trimmed.starts_with(current_marker) &&
-                           trimmed[current_marker.len()..].trim().is_empty() {
+                        if trimmed.starts_with(current_marker)
+                            && trimmed[current_marker.len()..]
+                                .trim()
+                                .is_empty()
+                        {
                             // This closes the current code block
                             result.push(line.to_string());
                             in_code_block = false;
@@ -303,8 +324,11 @@ impl Rule for MD031BlanksAroundFences {
                     message: "No blank line after fenced code block".to_string(),
                     severity: Severity::Warning,
                     fix: Some(Fix {
-                        range: line_index
-                            .line_col_to_byte_range_with_length(line_num, lines[line_num - 1].len() + 1, 0),
+                        range: line_index.line_col_to_byte_range_with_length(
+                            line_num,
+                            lines[line_num - 1].len() + 1,
+                            0,
+                        ),
                         replacement: "\n".to_string(),
                     }),
                 });
@@ -332,8 +356,12 @@ impl DocumentStructureExtensions for MD031BlanksAroundFences {
         _ctx: &crate::lint_context::LintContext,
         doc_structure: &DocumentStructure,
     ) -> bool {
-        !doc_structure.fenced_code_block_starts.is_empty()
-            || !doc_structure.fenced_code_block_ends.is_empty()
+        !doc_structure
+            .fenced_code_block_starts
+            .is_empty()
+            || !doc_structure
+                .fenced_code_block_ends
+                .is_empty()
     }
 }
 
@@ -351,7 +379,9 @@ mod tests {
         let content = "# Test Code Blocks\n\n```rust\nfn main() {}\n```\n\nSome text here.";
         let structure = document_structure_from_str(content);
         let ctx = LintContext::new(content);
-        let warnings = rule.check_with_structure(&ctx, &structure).unwrap();
+        let warnings = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert!(
             warnings.is_empty(),
             "Expected no warnings for properly formatted code blocks"
@@ -361,7 +391,9 @@ mod tests {
         let content = "# Test Code Blocks\n```rust\nfn main() {}\n```\n\nSome text here.";
         let structure = document_structure_from_str(content);
         let ctx = LintContext::new(content);
-        let warnings = rule.check_with_structure(&ctx, &structure).unwrap();
+        let warnings = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert_eq!(
             warnings.len(),
             1,
@@ -377,7 +409,9 @@ mod tests {
         let content = "# Test Code Blocks\n\n```rust\nfn main() {}\n```\nSome text here.";
         let structure = document_structure_from_str(content);
         let ctx = LintContext::new(content);
-        let warnings = rule.check_with_structure(&ctx, &structure).unwrap();
+        let warnings = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert_eq!(
             warnings.len(),
             1,
@@ -393,7 +427,9 @@ mod tests {
         let content = "# Test Code Blocks\n```rust\nfn main() {}\n```\nSome text here.";
         let structure = document_structure_from_str(content);
         let ctx = LintContext::new(content);
-        let warnings = rule.check_with_structure(&ctx, &structure).unwrap();
+        let warnings = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert_eq!(
             warnings.len(),
             2,

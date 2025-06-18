@@ -1,10 +1,14 @@
-use serde::{Deserialize, Serialize};
-use serde::ser::Serializer;
 use crate::rule_config_serde::RuleConfig;
+use serde::ser::Serializer;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MD055Config {
-    #[serde(default = "default_style", serialize_with = "serialize_style", deserialize_with = "deserialize_style")]
+    #[serde(
+        default = "default_style",
+        serialize_with = "serialize_style",
+        deserialize_with = "deserialize_style"
+    )]
     pub style: String,
 }
 
@@ -33,20 +37,23 @@ where
     D: serde::Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    
+
     // Validate the style
     let valid_styles = [
         "consistent",
-        "leading_and_trailing", 
+        "leading_and_trailing",
         "no_leading_or_trailing",
         "leading_only",
         "trailing_only",
     ];
-    
+
     if valid_styles.contains(&s.as_str()) {
         Ok(s)
     } else {
-        Err(serde::de::Error::custom(format!("Invalid table pipe style: {}", s)))
+        Err(serde::de::Error::custom(format!(
+            "Invalid table pipe style: {}",
+            s
+        )))
     }
 }
 

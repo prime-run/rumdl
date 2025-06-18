@@ -10,7 +10,7 @@ pub mod server;
 pub mod types;
 
 pub use server::RumdlLanguageServer;
-pub use types::{warning_to_code_action, warning_to_diagnostic, RumdlLspConfig};
+pub use types::{RumdlLspConfig, warning_to_code_action, warning_to_diagnostic};
 
 use anyhow::Result;
 use tokio::net::TcpListener;
@@ -26,7 +26,9 @@ pub async fn start_server() -> Result<()> {
 
     log::info!("Starting rumdl Language Server Protocol server");
 
-    Server::new(stdin, stdout, socket).serve(service).await;
+    Server::new(stdin, stdout, socket)
+        .serve(service)
+        .await;
 
     Ok(())
 }
@@ -42,7 +44,9 @@ pub async fn start_tcp_server(port: u16) -> Result<()> {
 
         tokio::spawn(async move {
             let (read, write) = tokio::io::split(stream);
-            Server::new(read, write, socket).serve(service).await;
+            Server::new(read, write, socket)
+                .serve(service)
+                .await;
         });
     }
 }

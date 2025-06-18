@@ -1,4 +1,4 @@
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 use toml;
 
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, Severity};
@@ -30,7 +30,7 @@ impl MD012NoMultipleBlanks {
             config: MD012Config { maximum },
         }
     }
-    
+
     pub fn from_config_struct(config: MD012Config) -> Self {
         Self { config }
     }
@@ -83,7 +83,8 @@ impl MD012NoMultipleBlanks {
                 continue;
             }
 
-            let is_indented_code = line.len() >= 4 && line.starts_with("    ") && !line.trim().is_empty();
+            let is_indented_code =
+                line.len() >= 4 && line.starts_with("    ") && !line.trim().is_empty();
             let is_blank = line.trim().is_empty();
 
             if is_indented_code {
@@ -217,7 +218,9 @@ impl Rule for MD012NoMultipleBlanks {
                     // Report warnings starting from the (maximum+1)th blank line
                     for i in self.config.maximum..blank_count {
                         let excess_line = blank_start + i + 1; // +1 for 1-indexed lines
-                        let excess_line_content = lines.get(blank_start + i).unwrap_or(&"");
+                        let excess_line_content = lines
+                            .get(blank_start + i)
+                            .unwrap_or(&"");
 
                         // Calculate precise character range for the entire blank line
                         let (start_line, start_col, end_line, end_col) =
@@ -237,8 +240,12 @@ impl Rule for MD012NoMultipleBlanks {
                             fix: Some(Fix {
                                 range: {
                                     // Remove entire line including newline
-                                    let line_start = _line_index.get_line_start_byte(excess_line).unwrap_or(0);
-                                    let line_end = _line_index.get_line_start_byte(excess_line + 1).unwrap_or(line_start + 1);
+                                    let line_start = _line_index
+                                        .get_line_start_byte(excess_line)
+                                        .unwrap_or(0);
+                                    let line_end = _line_index
+                                        .get_line_start_byte(excess_line + 1)
+                                        .unwrap_or(line_start + 1);
                                     line_start..line_end
                                 },
                                 replacement: String::new(), // Remove the excess line
@@ -255,7 +262,9 @@ impl Rule for MD012NoMultipleBlanks {
             let location = "at end of file";
             for i in self.config.maximum..blank_count {
                 let excess_line = blank_start + i + 1;
-                let excess_line_content = lines.get(blank_start + i).unwrap_or(&"");
+                let excess_line_content = lines
+                    .get(blank_start + i)
+                    .unwrap_or(&"");
 
                 // Calculate precise character range for the entire blank line
                 let (start_line, start_col, end_line, end_col) =
@@ -275,8 +284,12 @@ impl Rule for MD012NoMultipleBlanks {
                     fix: Some(Fix {
                         range: {
                             // Remove entire line including newline
-                            let line_start = _line_index.get_line_start_byte(excess_line).unwrap_or(0);
-                            let line_end = _line_index.get_line_start_byte(excess_line + 1).unwrap_or(line_start + 1);
+                            let line_start = _line_index
+                                .get_line_start_byte(excess_line)
+                                .unwrap_or(0);
+                            let line_end = _line_index
+                                .get_line_start_byte(excess_line + 1)
+                                .unwrap_or(line_start + 1);
                             line_start..line_end
                         },
                         replacement: String::new(),
@@ -385,10 +398,13 @@ impl Rule for MD012NoMultipleBlanks {
         let default_config = MD012Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD012Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD012Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }

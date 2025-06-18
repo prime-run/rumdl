@@ -1,11 +1,15 @@
-use serde::{Deserialize, Serialize};
-use serde::ser::Serializer;
 use crate::rule_config_serde::RuleConfig;
 use crate::rules::emphasis_style::EmphasisStyle;
+use serde::ser::Serializer;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MD049Config {
-    #[serde(default = "default_style", serialize_with = "serialize_style", deserialize_with = "deserialize_style")]
+    #[serde(
+        default = "default_style",
+        serialize_with = "serialize_style",
+        deserialize_with = "deserialize_style"
+    )]
     pub style: EmphasisStyle,
 }
 

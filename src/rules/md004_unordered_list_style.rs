@@ -1,3 +1,4 @@
+use crate::LintContext;
 /// Rule MD004: Use consistent style for unordered list markers
 ///
 /// See [docs/md004.md](../../docs/md004.md) for full documentation, configuration, and examples.
@@ -50,7 +51,6 @@
 /// Consistent list markers improve readability and reduce distraction, especially in large documents or when collaborating with others. This rule helps enforce a uniform style across all unordered lists.
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
 use crate::utils::document_structure::DocumentStructureExtensions;
-use crate::LintContext;
 use toml;
 
 mod md004_config;
@@ -69,7 +69,6 @@ impl Default for UnorderedListStyle {
         Self::Consistent
     }
 }
-
 
 /// Rule MD004: Unordered list style
 #[derive(Clone)]
@@ -94,7 +93,7 @@ impl MD004UnorderedListStyle {
             },
         }
     }
-    
+
     pub fn from_config_struct(config: MD004Config) -> Self {
         Self { config }
     }
@@ -145,7 +144,7 @@ impl Rule for MD004UnorderedListStyle {
 
                         // Get the marker character
                         let marker = list_item.marker.chars().next().unwrap();
-                        
+
                         // Calculate offset for the marker position
                         let offset = line_info.byte_offset + list_item.marker_column;
 
@@ -216,7 +215,11 @@ impl Rule for MD004UnorderedListStyle {
     }
 
     fn fix(&self, ctx: &LintContext) -> Result<String, LintError> {
-        let mut lines: Vec<String> = ctx.content.lines().map(String::from).collect();
+        let mut lines: Vec<String> = ctx
+            .content
+            .lines()
+            .map(String::from)
+            .collect();
         let mut first_marker: Option<char> = None;
 
         // Use centralized list blocks
@@ -242,7 +245,7 @@ impl Rule for MD004UnorderedListStyle {
 
                         let line = &lines[line_idx];
                         let marker = list_item.marker.chars().next().unwrap();
-                        
+
                         // Determine the target marker
                         let target_marker = match self.config.style {
                             UnorderedListStyle::Consistent => {
@@ -332,7 +335,10 @@ impl DocumentStructureExtensions for MD004UnorderedListStyle {
         _doc_structure: &crate::utils::document_structure::DocumentStructure,
     ) -> bool {
         // Quick check for any list markers and unordered list blocks
-        ctx.content.contains(['*', '-', '+']) && 
-        ctx.list_blocks.iter().any(|block| !block.is_ordered)
+        ctx.content.contains(['*', '-', '+'])
+            && ctx
+                .list_blocks
+                .iter()
+                .any(|block| !block.is_ordered)
     }
 }

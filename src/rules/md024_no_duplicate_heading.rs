@@ -1,8 +1,8 @@
 use toml;
 
 use crate::rule::{LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
-use crate::utils::range_utils::calculate_match_range;
 use crate::rule_config_serde::RuleConfig;
+use crate::utils::range_utils::calculate_match_range;
 use std::collections::{HashMap, HashSet};
 
 mod md024_config;
@@ -30,7 +30,7 @@ impl MD024NoDuplicateHeading {
             },
         }
     }
-    
+
     pub fn from_config_struct(config: MD024Config) -> Self {
         Self { config }
     }
@@ -72,20 +72,31 @@ impl Rule for MD024NoDuplicateHeading {
                 } else {
                     // Fallback: find after hash markers
                     let trimmed = line_info.content.trim_start();
-                    let hash_count = trimmed.chars().take_while(|&c| c == '#').count();
+                    let hash_count = trimmed
+                        .chars()
+                        .take_while(|&c| c == '#')
+                        .count();
                     let after_hashes = &trimmed[hash_count..];
-                    let text_start_in_trimmed = after_hashes.find(&heading.text).unwrap_or(0);
+                    let text_start_in_trimmed = after_hashes
+                        .find(&heading.text)
+                        .unwrap_or(0);
                     (line_info.content.len() - trimmed.len()) + hash_count + text_start_in_trimmed
                 };
 
-                let (start_line, start_col, end_line, end_col) =
-                    calculate_match_range(line_num + 1, &line_info.content, text_start_in_line, heading.text.len());
+                let (start_line, start_col, end_line, end_col) = calculate_match_range(
+                    line_num + 1,
+                    &line_info.content,
+                    text_start_in_line,
+                    heading.text.len(),
+                );
 
                 if self.config.siblings_only {
                     // TODO: Implement siblings_only logic if needed
                 } else if self.config.allow_different_nesting {
                     // Only flag duplicates at the same level
-                    let seen = seen_headings_per_level.entry(level).or_default();
+                    let seen = seen_headings_per_level
+                        .entry(level)
+                        .or_default();
                     if seen.contains(&heading_key) {
                         warnings.push(LintWarning {
                             rule_name: Some(self.name()),
@@ -119,7 +130,7 @@ impl Rule for MD024NoDuplicateHeading {
                 }
             }
         }
-        
+
         Ok(warnings)
     }
 
@@ -135,7 +146,9 @@ impl Rule for MD024NoDuplicateHeading {
 
     /// Check if this rule should be skipped
     fn should_skip(&self, ctx: &crate::lint_context::LintContext) -> bool {
-        ctx.lines.iter().all(|line| line.heading.is_none())
+        ctx.lines
+            .iter()
+            .all(|line| line.heading.is_none())
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -150,10 +163,13 @@ impl Rule for MD024NoDuplicateHeading {
         let default_config = MD024Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD024Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD024Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }

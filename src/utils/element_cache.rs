@@ -195,7 +195,9 @@ impl ElementCache {
 
                     if line.trim().starts_with(&fence_marker) {
                         // End of code block
-                        let start_pos = lines[0..block_start_line].join("\n").len()
+                        let start_pos = lines[0..block_start_line]
+                            .join("\n")
+                            .len()
                             + if block_start_line > 0 { 1 } else { 0 };
                         let end_pos = lines[0..=i].join("\n").len();
 
@@ -220,15 +222,25 @@ impl ElementCache {
                     }
                 } else if let Some(caps) = CODE_BLOCK_START_REGEX.captures(line) {
                     // Start of a new code block
-                    fence_marker = caps.get(2).map_or("```", |m| m.as_str()).to_string();
+                    fence_marker = caps
+                        .get(2)
+                        .map_or("```", |m| m.as_str())
+                        .to_string();
                     in_fenced_block = true;
                     block_start_line = i;
-                    block_language = caps.get(3).map_or("", |m| m.as_str().trim()).to_string();
+                    block_language = caps
+                        .get(3)
+                        .map_or("", |m| m.as_str().trim())
+                        .to_string();
                     self.code_block_line_map[i] = true;
                 } else if INDENTED_CODE_BLOCK_REGEX.is_match(line) {
                     // Only mark as indented code block if not a list item
-                    let is_unordered_list = UNORDERED_LIST_REGEX.is_match(line).unwrap_or(false);
-                    let is_ordered_list = ORDERED_LIST_REGEX.is_match(line).unwrap_or(false);
+                    let is_unordered_list = UNORDERED_LIST_REGEX
+                        .is_match(line)
+                        .unwrap_or(false);
+                    let is_ordered_list = ORDERED_LIST_REGEX
+                        .is_match(line)
+                        .unwrap_or(false);
                     if !is_unordered_list && !is_ordered_list {
                         // Indented code block
                         self.code_block_line_map[i] = true;
@@ -253,7 +265,9 @@ impl ElementCache {
 
             // Handle unclosed code block
             if in_fenced_block {
-                let start_pos = lines[0..block_start_line].join("\n").len()
+                let start_pos = lines[0..block_start_line]
+                    .join("\n")
+                    .len()
                     + if block_start_line > 0 { 1 } else { 0 };
                 let end_pos = content.len();
 
@@ -288,7 +302,8 @@ impl ElementCache {
                     // Find matching closing backticks
                     if let Some(end_pos) = content[m.end()..].find(&"`".repeat(backtick_length)) {
                         let end = m.end() + end_pos + backtick_length;
-                        self.code_spans.push(Range { start, end });
+                        self.code_spans
+                            .push(Range { start, end });
                         i = end;
                     } else {
                         i = m.end();
@@ -399,10 +414,14 @@ impl ElementCache {
                         if diff <= 2 && indent <= 8 && last_indent <= 8 {
                             // Check if there's a recent item at a lower indentation level
                             let has_lower_indent =
-                                prev_items.iter().rev().take(3).any(|(bq, prev_indent, _)| {
-                                    *bq == blockquote_depth
-                                        && *prev_indent < indent.min(last_indent)
-                                });
+                                prev_items
+                                    .iter()
+                                    .rev()
+                                    .take(3)
+                                    .any(|(bq, prev_indent, _)| {
+                                        *bq == blockquote_depth
+                                            && *prev_indent < indent.min(last_indent)
+                                    });
                             if has_lower_indent {
                                 found_level = Some(last_level);
                             }
@@ -451,10 +470,17 @@ impl ElementCache {
                     .map_or("", |m| m.as_str())
                     .to_string();
                 let indentation = Self::calculate_indentation_width_default(&indent_str);
-                let marker = captures.name("marker").unwrap().as_str();
-                let after = captures.name("after").map_or("", |m| m.as_str());
+                let marker = captures
+                    .name("marker")
+                    .unwrap()
+                    .as_str();
+                let after = captures
+                    .name("after")
+                    .map_or("", |m| m.as_str());
                 let spaces = after.len();
-                let raw_content = captures.name("content").map_or("", |m| m.as_str());
+                let raw_content = captures
+                    .name("content")
+                    .map_or("", |m| m.as_str());
                 let content = raw_content.trim_start().to_string();
                 let marker_type = match marker {
                     "*" => ListMarkerType::Asterisk,
@@ -496,8 +522,13 @@ impl ElementCache {
                     .map_or("", |m| m.as_str())
                     .to_string();
                 let indentation = Self::calculate_indentation_width_default(&indent_str);
-                let marker = captures.name("marker").unwrap().as_str();
-                let spaces = captures.name("after").map_or(0, |m| m.as_str().len());
+                let marker = captures
+                    .name("marker")
+                    .unwrap()
+                    .as_str();
+                let spaces = captures
+                    .name("after")
+                    .map_or(0, |m| m.as_str().len());
                 let content = captures
                     .name("content")
                     .map_or("", |m| m.as_str())
@@ -738,7 +769,9 @@ mod tests {
 \n    - After blank line, not nested\n\n\t* Tab indented\n        * 8 spaces indented\n* After excessive indent\n";
         let cache = ElementCache::new(content);
         // Should detect all lines that start with a valid unordered list marker
-        let _expected_markers = ["*", "-", "+", "*", "-", "+", "*", "*", "-", "*", "*", "*"];
+        let _expected_markers = [
+            "*", "-", "+", "*", "-", "+", "*", "*", "-", "*", "*", "*",
+        ];
         let _expected_indents = [0, 4, 8, 0, 4, 8, 0, 4, 8, 12, 16, 20];
         let expected_content = vec![
             "Level 1",
@@ -784,10 +817,10 @@ mod tests {
             "Tab or 8-space indented item not detected"
         );
         // Check that after blank lines, items maintain correct nesting based on indentation
-        let after_blank = cache
-            .list_items
-            .iter()
-            .find(|item| item.content.contains("After blank line"));
+        let after_blank = cache.list_items.iter().find(|item| {
+            item.content
+                .contains("After blank line")
+        });
         assert!(after_blank.is_some());
         assert_eq!(
             after_blank.unwrap().nesting_level,

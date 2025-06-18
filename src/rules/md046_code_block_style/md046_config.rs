@@ -1,11 +1,15 @@
-use serde::{Deserialize, Serialize};
 use crate::rule_config_serde::RuleConfig;
 use crate::rules::code_block_utils::CodeBlockStyle;
 use serde::ser::Serializer;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MD046Config {
-    #[serde(default = "default_style", serialize_with = "serialize_style", deserialize_with = "deserialize_style")]
+    #[serde(
+        default = "default_style",
+        serialize_with = "serialize_style",
+        deserialize_with = "deserialize_style"
+    )]
     pub style: CodeBlockStyle,
 }
 
@@ -30,7 +34,10 @@ where
         "fenced" => Ok(CodeBlockStyle::Fenced),
         "indented" => Ok(CodeBlockStyle::Indented),
         "consistent" => Ok(CodeBlockStyle::Consistent),
-        _ => Err(serde::de::Error::custom(format!("Invalid code block style: {}", s))),
+        _ => Err(serde::de::Error::custom(format!(
+            "Invalid code block style: {}",
+            s
+        ))),
     }
 }
 

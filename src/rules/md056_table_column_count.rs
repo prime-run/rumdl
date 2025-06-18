@@ -1,5 +1,5 @@
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, Severity};
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 use crate::utils::table_utils::TableUtils;
 
 /// Rule MD056: Table column count
@@ -110,7 +110,12 @@ impl Rule for MD056TableColumnCount {
             // Check all rows in the table
             let all_lines = std::iter::once(table_block.header_line)
                 .chain(std::iter::once(table_block.delimiter_line))
-                .chain(table_block.content_lines.iter().copied());
+                .chain(
+                    table_block
+                        .content_lines
+                        .iter()
+                        .copied(),
+                );
 
             for line_idx in all_lines {
                 let line = lines[line_idx];
@@ -158,7 +163,9 @@ impl Rule for MD056TableColumnCount {
         let mut result = Vec::new();
 
         for (i, line) in lines.iter().enumerate() {
-            let warning_idx = warnings.iter().position(|w| w.line == i + 1);
+            let warning_idx = warnings
+                .iter()
+                .position(|w| w.line == i + 1);
 
             if let Some(idx) = warning_idx {
                 if let Some(fix) = &warnings[idx].fix {

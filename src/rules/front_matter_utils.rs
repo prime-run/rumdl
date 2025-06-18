@@ -196,7 +196,10 @@ impl FrontMatterUtils {
         let mut indent_level = 0;
 
         for line in front_matter {
-            let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+            let line_indent = line
+                .chars()
+                .take_while(|c| c.is_whitespace())
+                .count();
             let line = line.trim();
 
             // Handle indentation changes for nested fields

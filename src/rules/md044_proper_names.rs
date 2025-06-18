@@ -88,12 +88,12 @@ impl MD044ProperNames {
             combined_regex: Arc::new(Mutex::new(None)),
             content_cache: Arc::new(Mutex::new(HashMap::new())),
         };
-        
+
         // Pre-compile the combined regex
         instance.compile_combined_regex();
         instance
     }
-    
+
     pub fn from_config_struct(config: MD044Config) -> Self {
         let mut instance = Self {
             config,
@@ -104,7 +104,7 @@ impl MD044ProperNames {
         instance.compile_combined_regex();
         instance
     }
-    
+
     // Compile and cache the combined regex pattern
     fn compile_combined_regex(&mut self) {
         if let Some(pattern) = self.create_combined_pattern() {
@@ -119,27 +119,32 @@ impl MD044ProperNames {
         }
     }
 
-
-
     // Create a combined regex pattern for all proper names
     fn create_combined_pattern(&self) -> Option<String> {
         if self.config.names.is_empty() {
             return None;
         }
-        
+
         // Create patterns for all names and their variations
-        let patterns: Vec<String> = self.config.names.iter().map(|name| {
-            let lower_name = name.to_lowercase();
-            let lower_name_no_dots = lower_name.replace('.', "");
-            if lower_name == lower_name_no_dots {
-                fancy_regex::escape(&lower_name).to_string()
-            } else {
-                format!("(?:{}|{})", 
-                    fancy_regex::escape(&lower_name),
-                    fancy_regex::escape(&lower_name_no_dots))
-            }
-        }).collect();
-        
+        let patterns: Vec<String> = self
+            .config
+            .names
+            .iter()
+            .map(|name| {
+                let lower_name = name.to_lowercase();
+                let lower_name_no_dots = lower_name.replace('.', "");
+                if lower_name == lower_name_no_dots {
+                    fancy_regex::escape(&lower_name).to_string()
+                } else {
+                    format!(
+                        "(?:{}|{})",
+                        fancy_regex::escape(&lower_name),
+                        fancy_regex::escape(&lower_name_no_dots)
+                    )
+                }
+            })
+            .collect();
+
         // Combine all patterns into a single regex with capture groups
         Some(format!(
             r"(?<![a-zA-Z0-9])(?i)({})(?![a-zA-Z0-9])",
@@ -148,7 +153,11 @@ impl MD044ProperNames {
     }
 
     // Find all name violations in the content and return positions
-    fn find_name_violations(&self, content: &str, ctx: &crate::lint_context::LintContext) -> Vec<WarningPosition> {
+    fn find_name_violations(
+        &self,
+        content: &str,
+        ctx: &crate::lint_context::LintContext,
+    ) -> Vec<WarningPosition> {
         // Early return: if no names configured or content is empty
         if self.config.names.is_empty() || content.is_empty() {
             return Vec::new();
@@ -186,7 +195,7 @@ impl MD044ProperNames {
                 None => return Vec::new(),
             }
         };
-        
+
         let mut byte_pos = 0;
 
         for (line_num, line) in content.lines().enumerate() {
@@ -196,7 +205,7 @@ impl MD044ProperNames {
                 byte_pos += line.len() + 1;
                 continue;
             }
-            
+
             // Skip if in code block
             if self.config.code_blocks && ctx.is_in_code_block_or_span(byte_pos) {
                 byte_pos += line.len() + 1;
@@ -234,15 +243,11 @@ impl MD044ProperNames {
                         }
                     }
                     Err(e) => {
-                        eprintln!(
-                            "Regex execution error on line {}: {}",
-                            line_num + 1,
-                            e
-                        );
+                        eprintln!("Regex execution error on line {}: {}", line_num + 1, e);
                     }
                 }
             }
-            
+
             byte_pos += line.len() + 1;
         }
 
@@ -355,7 +360,12 @@ impl Rule for MD044ProperNames {
                     // Log error or handle invalid range - potentially due to overlapping fixes or calculation errors
                     eprintln!(
                         "Warning: Skipping fix for '{}' at {}:{} due to invalid byte range [{}..{}], content length {}.",
-                        found_name, line_num, col_num, start_byte, end_byte, fixed_content.len()
+                        found_name,
+                        line_num,
+                        col_num,
+                        start_byte,
+                        end_byte,
+                        fixed_content.len()
                     );
                 }
             }

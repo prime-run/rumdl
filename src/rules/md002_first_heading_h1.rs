@@ -1,8 +1,8 @@
 use crate::rule::Rule;
 use crate::rule::{Fix, LintError, LintResult, LintWarning, RuleCategory, Severity};
+use crate::rule_config_serde::RuleConfig;
 use crate::rules::heading_utils::HeadingStyle;
 use crate::utils::range_utils::calculate_heading_range;
-use crate::rule_config_serde::RuleConfig;
 use toml;
 
 mod md002_config;
@@ -101,11 +101,10 @@ impl MD002FirstHeadingH1 {
             config: MD002Config { level },
         }
     }
-    
+
     pub fn from_config_struct(config: MD002Config) -> Self {
         Self { config }
     }
-
 }
 
 impl Rule for MD002FirstHeadingH1 {
@@ -125,9 +124,15 @@ impl Rule for MD002FirstHeadingH1 {
         }
 
         // Find the first heading using pre-computed line info
-        let first_heading = ctx.lines.iter().enumerate()
+        let first_heading = ctx
+            .lines
+            .iter()
+            .enumerate()
             .find_map(|(line_num, line_info)| {
-                line_info.heading.as_ref().map(|h| (line_num, line_info, h))
+                line_info
+                    .heading
+                    .as_ref()
+                    .map(|h| (line_num, line_info, h))
             });
 
         if let Some((line_num, line_info, heading)) = first_heading {
@@ -139,21 +144,22 @@ impl Rule for MD002FirstHeadingH1 {
 
                 // Calculate the fix
                 let fix = {
-                    let replacement = crate::rules::heading_utils::HeadingUtils::convert_heading_style(
-                        &heading.text, 
-                        self.config.level, 
-                        match heading.style {
-                            crate::lint_context::HeadingStyle::ATX => {
-                                if heading.has_closing_sequence {
-                                    HeadingStyle::AtxClosed
-                                } else {
-                                    HeadingStyle::Atx
+                    let replacement =
+                        crate::rules::heading_utils::HeadingUtils::convert_heading_style(
+                            &heading.text,
+                            self.config.level,
+                            match heading.style {
+                                crate::lint_context::HeadingStyle::ATX => {
+                                    if heading.has_closing_sequence {
+                                        HeadingStyle::AtxClosed
+                                    } else {
+                                        HeadingStyle::Atx
+                                    }
                                 }
+                                crate::lint_context::HeadingStyle::Setext1 => HeadingStyle::Setext1,
+                                crate::lint_context::HeadingStyle::Setext2 => HeadingStyle::Setext2,
                             },
-                            crate::lint_context::HeadingStyle::Setext1 => HeadingStyle::Setext1,
-                            crate::lint_context::HeadingStyle::Setext2 => HeadingStyle::Setext2,
-                        }
-                    );
+                        );
 
                     // Use line content range to replace the entire heading line
                     let line_index = crate::utils::range_utils::LineIndex::new(content.to_string());
@@ -183,14 +189,19 @@ impl Rule for MD002FirstHeadingH1 {
         Ok(vec![])
     }
 
-
     fn fix(&self, ctx: &crate::lint_context::LintContext) -> Result<String, LintError> {
         let content = ctx.content;
-        
+
         // Find the first heading using pre-computed line info
-        let first_heading = ctx.lines.iter().enumerate()
+        let first_heading = ctx
+            .lines
+            .iter()
+            .enumerate()
             .find_map(|(line_num, line_info)| {
-                line_info.heading.as_ref().map(|h| (line_num, line_info, h))
+                line_info
+                    .heading
+                    .as_ref()
+                    .map(|h| (line_num, line_info, h))
             });
 
         if let Some((line_num, line_info, heading)) = first_heading {
@@ -207,26 +218,34 @@ impl Rule for MD002FirstHeadingH1 {
                     // This is the first heading line that needs fixing
                     let indent = " ".repeat(line_info.indent);
                     let heading_text = heading.text.trim();
-                    
+
                     match heading.style {
                         crate::lint_context::HeadingStyle::ATX => {
                             let hashes = "#".repeat(self.config.level as usize);
                             if heading.has_closing_sequence {
                                 // Preserve closed ATX: # Heading #
-                                fixed_lines.push(format!("{}{} {} {}", indent, hashes, heading_text, hashes));
+                                fixed_lines.push(format!(
+                                    "{}{} {} {}",
+                                    indent, hashes, heading_text, hashes
+                                ));
                             } else {
                                 // Standard ATX: # Heading
                                 fixed_lines.push(format!("{}{} {}", indent, hashes, heading_text));
                             }
                             i += 1;
                         }
-                        crate::lint_context::HeadingStyle::Setext1 | crate::lint_context::HeadingStyle::Setext2 => {
+                        crate::lint_context::HeadingStyle::Setext1
+                        | crate::lint_context::HeadingStyle::Setext2 => {
                             // For Setext, we need to update the underline
                             fixed_lines.push(lines[i].to_string()); // Keep heading text as-is
                             i += 1;
                             if i < lines.len() {
                                 // Replace the underline
-                                let underline = if self.config.level == 1 { "=======" } else { "-------" };
+                                let underline = if self.config.level == 1 {
+                                    "======="
+                                } else {
+                                    "-------"
+                                };
                                 fixed_lines.push(underline.to_string());
                                 i += 1;
                             }
@@ -234,11 +253,11 @@ impl Rule for MD002FirstHeadingH1 {
                     }
                     continue;
                 }
-                
+
                 fixed_lines.push(lines[i].to_string());
                 i += 1;
             }
-            
+
             Ok(fixed_lines.join("\n"))
         } else {
             // No headings found
@@ -270,10 +289,13 @@ impl Rule for MD002FirstHeadingH1 {
         let default_config = MD002Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD002Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD002Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }
@@ -290,5 +312,3 @@ impl Rule for MD002FirstHeadingH1 {
         Box::new(Self::from_config_struct(rule_config))
     }
 }
-
-

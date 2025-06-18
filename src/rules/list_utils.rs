@@ -109,7 +109,13 @@ impl ListUtils {
         }
 
         let trimmed = line.trim_start();
-        if trimmed.is_empty() || !trimmed.chars().next().unwrap().is_ascii_digit() {
+        if trimmed.is_empty()
+            || !trimmed
+                .chars()
+                .next()
+                .unwrap()
+                .is_ascii_digit()
+        {
             return false;
         }
 
@@ -146,7 +152,10 @@ impl ListUtils {
         let trimmed = line.trim();
         if !trimmed.is_empty() {
             // Check for horizontal rules (only dashes and whitespace)
-            if trimmed.chars().all(|c| c == '-' || c.is_whitespace()) {
+            if trimmed
+                .chars()
+                .all(|c| c == '-' || c.is_whitespace())
+            {
                 return false;
             }
 
@@ -183,9 +192,13 @@ impl ListUtils {
     pub fn parse_list_item(line: &str) -> Option<ListItem> {
         // First try to match unordered list pattern
         if let Some(captures) = UNORDERED_LIST_PATTERN.captures(line) {
-            let indentation = captures.get(1).map_or(0, |m| m.as_str().len());
+            let indentation = captures
+                .get(1)
+                .map_or(0, |m| m.as_str().len());
             let marker = captures.get(2).unwrap().as_str();
-            let spaces = captures.get(3).map_or(0, |m| m.as_str().len());
+            let spaces = captures
+                .get(3)
+                .map_or(0, |m| m.as_str().len());
             let content_start = indentation + marker.len() + spaces;
             let content = if content_start < line.len() {
                 line[content_start..].to_string()
@@ -211,9 +224,13 @@ impl ListUtils {
 
         // Then try to match ordered list pattern
         if let Some(captures) = ORDERED_LIST_PATTERN.captures(line) {
-            let indentation = captures.get(1).map_or(0, |m| m.as_str().len());
+            let indentation = captures
+                .get(1)
+                .map_or(0, |m| m.as_str().len());
             let marker = captures.get(2).unwrap().as_str();
-            let spaces = captures.get(3).map_or(0, |m| m.as_str().len());
+            let spaces = captures
+                .get(3)
+                .map_or(0, |m| m.as_str().len());
             let content_start = indentation + marker.len() + spaces;
             let content = if content_start < line.len() {
                 line[content_start..].to_string()
@@ -240,7 +257,10 @@ impl ListUtils {
         }
 
         // Quick check for indentation level
-        let indentation = line.chars().take_while(|c| c.is_whitespace()).count();
+        let indentation = line
+            .chars()
+            .take_while(|c| c.is_whitespace())
+            .count();
 
         // Continuation should be indented at least as much as the content of the previous item
         let min_indent = prev_list_item.indentation
@@ -253,17 +273,29 @@ impl ListUtils {
     pub fn fix_list_item_without_space(line: &str) -> String {
         // Handle unordered list items
         if let Ok(Some(captures)) = UNORDERED_LIST_NO_SPACE_PATTERN.captures(line) {
-            let indentation = captures.get(1).map_or("", |m| m.as_str());
-            let marker = captures.get(2).map_or("", |m| m.as_str());
-            let content = captures.get(3).map_or("", |m| m.as_str());
+            let indentation = captures
+                .get(1)
+                .map_or("", |m| m.as_str());
+            let marker = captures
+                .get(2)
+                .map_or("", |m| m.as_str());
+            let content = captures
+                .get(3)
+                .map_or("", |m| m.as_str());
             return format!("{}{} {}", indentation, marker, content);
         }
 
         // Handle ordered list items
         if let Some(captures) = ORDERED_LIST_NO_SPACE_PATTERN.captures(line) {
-            let indentation = captures.get(1).map_or("", |m| m.as_str());
-            let marker = captures.get(2).map_or("", |m| m.as_str());
-            let content = captures.get(3).map_or("", |m| m.as_str());
+            let indentation = captures
+                .get(1)
+                .map_or("", |m| m.as_str());
+            let marker = captures
+                .get(2)
+                .map_or("", |m| m.as_str());
+            let content = captures
+                .get(3)
+                .map_or("", |m| m.as_str());
             return format!("{}{} {}", indentation, marker, content);
         }
 
@@ -273,9 +305,15 @@ impl ListUtils {
     /// Fix a list item with multiple spaces after the marker
     pub fn fix_list_item_with_multiple_spaces(line: &str) -> String {
         if let Some(captures) = UNORDERED_LIST_MULTIPLE_SPACE_PATTERN.captures(line) {
-            let leading_space = captures.get(1).map_or("", |m| m.as_str());
-            let marker = captures.get(2).map_or("", |m| m.as_str());
-            let spaces = captures.get(3).map_or("", |m| m.as_str());
+            let leading_space = captures
+                .get(1)
+                .map_or("", |m| m.as_str());
+            let marker = captures
+                .get(2)
+                .map_or("", |m| m.as_str());
+            let spaces = captures
+                .get(3)
+                .map_or("", |m| m.as_str());
 
             // Get content after multiple spaces
             let start_pos = leading_space.len() + marker.len() + spaces.len();
@@ -290,9 +328,15 @@ impl ListUtils {
         }
 
         if let Some(captures) = ORDERED_LIST_MULTIPLE_SPACE_PATTERN.captures(line) {
-            let leading_space = captures.get(1).map_or("", |m| m.as_str());
-            let marker = captures.get(2).map_or("", |m| m.as_str());
-            let spaces = captures.get(3).map_or("", |m| m.as_str());
+            let leading_space = captures
+                .get(1)
+                .map_or("", |m| m.as_str());
+            let marker = captures
+                .get(2)
+                .map_or("", |m| m.as_str());
+            let spaces = captures
+                .get(3)
+                .map_or("", |m| m.as_str());
 
             // Get content after multiple spaces
             let start_pos = leading_space.len() + marker.len() + spaces.len();
@@ -324,20 +368,36 @@ pub fn is_list_item(line: &str) -> Option<(ListType, String, usize)> {
         return None;
     }
     // Horizontal rule check (--- or ***)
-    if trimmed_line.chars().all(|c| c == '-' || c == ' ')
-        && trimmed_line.chars().filter(|&c| c == '-').count() >= 3
+    if trimmed_line
+        .chars()
+        .all(|c| c == '-' || c == ' ')
+        && trimmed_line
+            .chars()
+            .filter(|&c| c == '-')
+            .count()
+            >= 3
     {
         return None;
     }
-    if trimmed_line.chars().all(|c| c == '*' || c == ' ')
-        && trimmed_line.chars().filter(|&c| c == '*').count() >= 3
+    if trimmed_line
+        .chars()
+        .all(|c| c == '*' || c == ' ')
+        && trimmed_line
+            .chars()
+            .filter(|&c| c == '*')
+            .count()
+            >= 3
     {
         return None;
     }
     if let Some(cap) = LIST_REGEX.captures(line) {
         let marker = &cap[2];
         let spaces = cap[3].len();
-        let list_type = if marker.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+        let list_type = if marker
+            .chars()
+            .next()
+            .map_or(false, |c| c.is_ascii_digit())
+        {
             ListType::Ordered
         } else {
             ListType::Unordered

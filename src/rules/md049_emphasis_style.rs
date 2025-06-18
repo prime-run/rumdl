@@ -28,7 +28,7 @@ impl MD049EmphasisStyle {
             config: MD049Config { style },
         }
     }
-    
+
     pub fn from_config_struct(config: MD049Config) -> Self {
         Self { config }
     }
@@ -45,9 +45,16 @@ impl MD049EmphasisStyle {
                 if let Some(pos) = &em.position {
                     let start = pos.start.offset;
                     let (line, col) = ctx.offset_to_line_col(start);
-                    let line_str = ctx.content.lines().nth(line - 1).unwrap_or("");
+                    let line_str = ctx
+                        .content
+                        .lines()
+                        .nth(line - 1)
+                        .unwrap_or("");
                     // Find marker at col-1 (1-based col)
-                    let marker = line_str.chars().nth(col - 1).unwrap_or('*');
+                    let marker = line_str
+                        .chars()
+                        .nth(col - 1)
+                        .unwrap_or('*');
                     // Only consider if not inside ignored parent
                     if !matches!(parent_type, Some("Link" | "Image" | "Code")) {
                         emphasis_nodes.push((line, col, marker, em));
@@ -102,7 +109,11 @@ impl Rule for MD049EmphasisStyle {
                 for (line, col, marker, em) in emphasis_nodes.iter().skip(1) {
                     if *marker != target_marker {
                         // Calculate precise character range for the entire emphasis
-                        let line_str = ctx.content.lines().nth(line - 1).unwrap_or("");
+                        let line_str = ctx
+                            .content
+                            .lines()
+                            .nth(line - 1)
+                            .unwrap_or("");
                         let emphasis_start = col - 1; // Convert to 0-based
                         let emphasis_len = if let Some(pos) = &em.position {
                             pos.end.offset - pos.start.offset
@@ -164,7 +175,11 @@ impl Rule for MD049EmphasisStyle {
                 for (line, col, marker, em) in &emphasis_nodes {
                     if *marker == wrong_marker {
                         // Calculate precise character range for the entire emphasis
-                        let line_str = ctx.content.lines().nth(line - 1).unwrap_or("");
+                        let line_str = ctx
+                            .content
+                            .lines()
+                            .nth(line - 1)
+                            .unwrap_or("");
                         let emphasis_start = col - 1; // Convert to 0-based
                         let emphasis_len = if let Some(pos) = &em.position {
                             pos.end.offset - pos.start.offset

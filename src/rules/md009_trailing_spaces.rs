@@ -1,7 +1,7 @@
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
-use crate::utils::range_utils::{calculate_trailing_range, LineIndex};
-use crate::utils::regex_cache::get_cached_regex;
 use crate::rule_config_serde::RuleConfig;
+use crate::utils::range_utils::{LineIndex, calculate_trailing_range};
+use crate::utils::regex_cache::get_cached_regex;
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -32,11 +32,10 @@ impl MD009TrailingSpaces {
             config: MD009Config { br_spaces, strict },
         }
     }
-    
+
     pub fn from_config_struct(config: MD009Config) -> Self {
         Self { config }
     }
-
 
     fn is_empty_blockquote_line(line: &str) -> bool {
         let trimmed = line.trim_start();
@@ -97,7 +96,11 @@ impl Rule for MD009TrailingSpaces {
                         message: "Empty line has trailing spaces".to_string(),
                         severity: Severity::Warning,
                         fix: Some(Fix {
-                            range: _line_index.line_col_to_byte_range_with_length(line_num + 1, 1, line.len()),
+                            range: _line_index.line_col_to_byte_range_with_length(
+                                line_num + 1,
+                                1,
+                                line.len(),
+                            ),
                             replacement: String::new(),
                         }),
                     });
@@ -116,10 +119,13 @@ impl Rule for MD009TrailingSpaces {
             }
 
             // Check if it's a valid line break
-            // Special handling: if the content ends with a newline, the last line from .lines() 
+            // Special handling: if the content ends with a newline, the last line from .lines()
             // is not really the "last line" in terms of trailing spaces rules
             let is_truly_last_line = line_num == lines.len() - 1 && !content.ends_with('\n');
-            if !self.config.strict && !is_truly_last_line && trailing_spaces == self.config.br_spaces {
+            if !self.config.strict
+                && !is_truly_last_line
+                && trailing_spaces == self.config.br_spaces
+            {
                 continue;
             }
 
@@ -139,7 +145,11 @@ impl Rule for MD009TrailingSpaces {
                     message: "Empty blockquote line needs a space after >".to_string(),
                     severity: Severity::Warning,
                     fix: Some(Fix {
-                        range: _line_index.line_col_to_byte_range_with_length(line_num + 1, trimmed.len() + 1, line.len() - trimmed.len()),
+                        range: _line_index.line_col_to_byte_range_with_length(
+                            line_num + 1,
+                            trimmed.len() + 1,
+                            line.len() - trimmed.len(),
+                        ),
                         replacement: " ".to_string(),
                     }),
                 });
@@ -164,8 +174,15 @@ impl Rule for MD009TrailingSpaces {
                 },
                 severity: Severity::Warning,
                 fix: Some(Fix {
-                    range: _line_index.line_col_to_byte_range_with_length(line_num + 1, trimmed.len() + 1, trailing_spaces),
-                    replacement: if !self.config.strict && !is_truly_last_line && trailing_spaces >= 1 {
+                    range: _line_index.line_col_to_byte_range_with_length(
+                        line_num + 1,
+                        trimmed.len() + 1,
+                        trailing_spaces,
+                    ),
+                    replacement: if !self.config.strict
+                        && !is_truly_last_line
+                        && trailing_spaces >= 1
+                    {
                         " ".repeat(self.config.br_spaces)
                     } else {
                         String::new()
@@ -183,7 +200,9 @@ impl Rule for MD009TrailingSpaces {
         // For simple cases (strict mode), use fast regex approach
         if self.config.strict {
             // In strict mode, remove ALL trailing spaces everywhere
-            return Ok(TRAILING_SPACES_REGEX.replace_all(content, "").to_string());
+            return Ok(TRAILING_SPACES_REGEX
+                .replace_all(content, "")
+                .to_string());
         }
 
         // For complex cases, we need line-by-line processing but with optimizations
@@ -257,10 +276,13 @@ impl Rule for MD009TrailingSpaces {
         let default_config = MD009Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD009Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD009Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }

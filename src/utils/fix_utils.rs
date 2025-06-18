@@ -18,23 +18,28 @@ pub fn apply_warning_fixes(content: &str, warnings: &[LintWarning]) -> Result<St
     // Deduplicate fixes that operate on the same range with the same replacement
     // This prevents double-application when multiple warnings target the same issue
     fixes.sort_by(|(_, fix_a), (_, fix_b)| {
-        let range_cmp = fix_a.range.start.cmp(&fix_b.range.start);
+        let range_cmp = fix_a
+            .range
+            .start
+            .cmp(&fix_b.range.start);
         if range_cmp != std::cmp::Ordering::Equal {
             return range_cmp;
         }
         fix_a.range.end.cmp(&fix_b.range.end)
     });
-    
+
     let mut deduplicated = Vec::new();
     let mut i = 0;
     while i < fixes.len() {
         let (idx, current_fix) = fixes[i];
         deduplicated.push((idx, current_fix));
-        
+
         // Skip any subsequent fixes that have the same range and replacement
         while i + 1 < fixes.len() {
             let (_, next_fix) = fixes[i + 1];
-            if current_fix.range == next_fix.range && current_fix.replacement == next_fix.replacement {
+            if current_fix.range == next_fix.range
+                && current_fix.replacement == next_fix.replacement
+            {
                 i += 1; // Skip the duplicate
             } else {
                 break;
@@ -42,30 +47,33 @@ pub fn apply_warning_fixes(content: &str, warnings: &[LintWarning]) -> Result<St
         }
         i += 1;
     }
-    
+
     let mut fixes = deduplicated;
 
     // Sort fixes by range in reverse order (end to start) to avoid offset issues
     // Use original index as secondary sort key to ensure stable sorting
     fixes.sort_by(|(idx_a, fix_a), (idx_b, fix_b)| {
         // Primary: sort by range start in reverse order (largest first)
-        let range_cmp = fix_b.range.start.cmp(&fix_a.range.start);
+        let range_cmp = fix_b
+            .range
+            .start
+            .cmp(&fix_a.range.start);
         if range_cmp != std::cmp::Ordering::Equal {
             return range_cmp;
         }
-        
-        // Secondary: sort by range end in reverse order 
+
+        // Secondary: sort by range end in reverse order
         let end_cmp = fix_b.range.end.cmp(&fix_a.range.end);
         if end_cmp != std::cmp::Ordering::Equal {
             return end_cmp;
         }
-        
+
         // Tertiary: maintain original order for identical ranges (stable sort)
         idx_a.cmp(idx_b)
     });
 
     let mut result = content.to_string();
-    
+
     for (_, fix) in fixes {
         // Validate range bounds
         if fix.range.end > result.len() {
@@ -75,23 +83,23 @@ pub fn apply_warning_fixes(content: &str, warnings: &[LintWarning]) -> Result<St
                 result.len()
             ));
         }
-        
+
         if fix.range.start > fix.range.end {
             return Err(format!(
                 "Invalid fix range: start {} > end {}",
-                fix.range.start,
-                fix.range.end
+                fix.range.start, fix.range.end
             ));
         }
 
         // Apply the fix by replacing the range with the replacement text
         // Normalize fix replacement to match document line endings
-        let normalized_replacement = if original_line_ending == "\r\n" && !fix.replacement.contains("\r\n") {
-            fix.replacement.replace('\n', "\r\n")
-        } else {
-            fix.replacement.clone()
-        };
-        
+        let normalized_replacement =
+            if original_line_ending == "\r\n" && !fix.replacement.contains("\r\n") {
+                fix.replacement.replace('\n', "\r\n")
+            } else {
+                fix.replacement.clone()
+            };
+
         result.replace_range(fix.range.clone(), &normalized_replacement);
     }
 
@@ -102,13 +110,16 @@ pub fn apply_warning_fixes(content: &str, warnings: &[LintWarning]) -> Result<St
     } else {
         result.replace("\r\n", "\n")
     };
-    
+
     Ok(normalized_result)
 }
 
 /// Convert a single warning fix to a text edit-style representation
 /// This helps validate that individual warning fixes are correctly structured
-pub fn warning_fix_to_edit(content: &str, warning: &LintWarning) -> Result<(usize, usize, String), String> {
+pub fn warning_fix_to_edit(
+    content: &str,
+    warning: &LintWarning,
+) -> Result<(usize, usize, String), String> {
     if let Some(fix) = &warning.fix {
         // Validate the fix range against content
         if fix.range.end > content.len() {
@@ -146,8 +157,7 @@ pub fn validate_fix_range(content: &str, fix: &Fix) -> Result<(), String> {
     if fix.range.start > fix.range.end {
         return Err(format!(
             "Invalid fix range: start {} > end {}",
-            fix.range.start,
-            fix.range.end
+            fix.range.start, fix.range.end
         ));
     }
 
@@ -170,7 +180,7 @@ mod tests {
             end_column: 5,
             severity: Severity::Warning,
             fix: Some(Fix {
-                range: 2..4, // "  " (two spaces)
+                range: 2..4,                  // "  " (two spaces)
                 replacement: " ".to_string(), // single space
             }),
             rule_name: Some("MD030"),
@@ -219,7 +229,7 @@ mod tests {
     #[test]
     fn test_validate_fix_range() {
         let content = "Hello world";
-        
+
         // Valid range
         let valid_fix = Fix {
             range: 0..5,

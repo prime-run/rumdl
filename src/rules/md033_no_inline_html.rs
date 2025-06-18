@@ -45,7 +45,7 @@ impl MD033NoInlineHtml {
         let allowed = config.allowed_set();
         Self { config, allowed }
     }
-    
+
     pub fn from_config_struct(config: MD033Config) -> Self {
         let allowed = config.allowed_set();
         Self { config, allowed }
@@ -58,12 +58,15 @@ impl MD033NoInlineHtml {
             return false;
         }
         // Remove angle brackets and slashes, then split by whitespace or '>'
-        let tag = tag.trim_start_matches('<').trim_start_matches('/');
+        let tag = tag
+            .trim_start_matches('<')
+            .trim_start_matches('/');
         let tag_name = tag
             .split(|c: char| c.is_whitespace() || c == '>' || c == '/')
             .next()
             .unwrap_or("");
-        self.allowed.contains(&tag_name.to_lowercase())
+        self.allowed
+            .contains(&tag_name.to_lowercase())
     }
 
     // Check if a tag is an HTML comment
@@ -136,20 +139,26 @@ impl MD033NoInlineHtml {
     // Check if a tag is actually an email address in angle brackets
     #[inline]
     fn is_email_address(&self, tag: &str) -> bool {
-        let content = tag.trim_start_matches('<').trim_end_matches('>');
+        let content = tag
+            .trim_start_matches('<')
+            .trim_end_matches('>');
         // Simple email pattern: contains @ and has reasonable structure
         content.contains('@')
             && content
                 .chars()
                 .all(|c| c.is_alphanumeric() || "@.-_+".contains(c))
             && content.split('@').count() == 2
-            && content.split('@').all(|part| !part.is_empty())
+            && content
+                .split('@')
+                .all(|part| !part.is_empty())
     }
 
     // Check if a tag is actually a URL in angle brackets
     #[inline]
     fn is_url_in_angle_brackets(&self, tag: &str) -> bool {
-        let content = tag.trim_start_matches('<').trim_end_matches('>');
+        let content = tag
+            .trim_start_matches('<')
+            .trim_end_matches('>');
         // Check for common URL schemes
         content.starts_with("http://")
             || content.starts_with("https://")
@@ -166,7 +175,11 @@ impl MD033NoInlineHtml {
         warnings: &mut Vec<LintWarning>,
     ) {
         // Early return: if content has no incomplete tags at line ends, skip processing
-        if !content.contains('<') || !content.lines().any(|line| line.trim_end().ends_with('<')) {
+        if !content.contains('<')
+            || !content
+                .lines()
+                .any(|line| line.trim_end().ends_with('<'))
+        {
             return;
         }
 
@@ -199,7 +212,12 @@ impl MD033NoInlineHtml {
                 let mut found_end = false;
 
                 // Look for the closing > in subsequent lines (limit search to 10 lines)
-                for (j, next_line) in lines.iter().enumerate().skip(i + 1).take(10) {
+                for (j, next_line) in lines
+                    .iter()
+                    .enumerate()
+                    .skip(i + 1)
+                    .take(10)
+                {
                     let next_line_num = j + 1;
 
                     // Stop if we hit a code block
@@ -248,7 +266,9 @@ impl MD033NoInlineHtml {
                                     column: start_col,
                                     end_line,
                                     end_column: end_col,
-                                    message: format!("HTML tag found (use Markdown syntax instead)"),
+                                    message: format!(
+                                        "HTML tag found (use Markdown syntax instead)"
+                                    ),
                                     severity: Severity::Warning,
                                     fix: None,
                                 });
@@ -432,8 +452,14 @@ mod tests {
         let result = rule.check(&ctx).unwrap();
         // Reports one warning per HTML tag (true markdownlint compatibility)
         assert_eq!(result.len(), 2); // <div> and </div>
-        assert_eq!(result[0].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result[1].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result[1].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
     }
 
     #[test]
@@ -444,10 +470,22 @@ mod tests {
         let result = rule.check(&ctx).unwrap();
         // Reports one warning per HTML tag (true markdownlint compatibility)
         assert_eq!(result.len(), 4); // <DiV>, <B>, </B>, </dIv>
-        assert_eq!(result[0].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result[1].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result[2].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result[3].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result[1].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result[2].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result[3].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
     }
 
     #[test]
@@ -458,16 +496,28 @@ mod tests {
         let result = rule.check(&ctx).unwrap();
         // Only warnings for non-allowed tags (<p> and </p>, div and br are allowed)
         assert_eq!(result.len(), 2);
-        assert_eq!(result[0].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result[1].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result[1].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
 
         // Test case-insensitivity of allowed tags
         let content2 = "<DIV>Allowed</DIV><P>Not allowed</P><BR/>";
         let ctx2 = LintContext::new(content2);
         let result2 = rule.check(&ctx2).unwrap();
         assert_eq!(result2.len(), 2); // <P> and </P> flagged
-        assert_eq!(result2[0].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result2[1].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result2[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result2[1].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
     }
 
     #[test]
@@ -478,8 +528,14 @@ mod tests {
         let result = rule.check(&ctx).unwrap();
         // Should detect warnings for HTML tags (comments are skipped)
         assert_eq!(result.len(), 2); // <p> and </p>
-        assert_eq!(result[0].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result[1].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result[1].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
     }
 
     #[test]
@@ -490,15 +546,24 @@ mod tests {
         let result = rule.check(&ctx).unwrap();
         // The <div> in the URL should be detected as HTML (not skipped)
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
 
         let content2 = "[Link <a>text</a>](url)";
         let ctx2 = LintContext::new(content2);
         let result2 = rule.check(&ctx2).unwrap();
         // Reports one warning per HTML tag (true markdownlint compatibility)
         assert_eq!(result2.len(), 2); // <a> and </a>
-        assert_eq!(result2[0].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result2[1].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result2[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result2[1].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
     }
 
     #[test]
@@ -519,8 +584,14 @@ mod tests {
         let result = rule.check(&ctx).unwrap();
         // Reports one warning per HTML tag (true markdownlint compatibility)
         assert_eq!(result.len(), 2); // <div> and </div> outside code block
-        assert_eq!(result[0].message, "Inline HTML found (use Markdown syntax instead)");
-        assert_eq!(result[1].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
+        assert_eq!(
+            result[1].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
     }
 
     #[test]
@@ -531,6 +602,9 @@ mod tests {
         let result = rule.check(&ctx).unwrap();
         // Should detect <br/> outside code span, but not tags inside code span
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].message, "Inline HTML found (use Markdown syntax instead)");
+        assert_eq!(
+            result[0].message,
+            "Inline HTML found (use Markdown syntax instead)"
+        );
     }
 }

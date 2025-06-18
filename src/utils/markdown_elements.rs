@@ -72,7 +72,11 @@ impl MarkdownElements {
                 if !in_code_block {
                     block_start = i;
                     in_code_block = true;
-                    fence_type = captures.get(2).unwrap().as_str().to_string();
+                    fence_type = captures
+                        .get(2)
+                        .unwrap()
+                        .as_str()
+                        .to_string();
                     language = captures
                         .get(3)
                         .map_or("", |m| m.as_str())
@@ -191,7 +195,10 @@ impl MarkdownElements {
                     .map_or("", |m| m.as_str())
                     .trim()
                     .to_string();
-                let spaces_after_hash = captures.get(3).map_or("", |m| m.as_str()).len();
+                let spaces_after_hash = captures
+                    .get(3)
+                    .map_or("", |m| m.as_str())
+                    .len();
 
                 // Determine if heading is well-formed (must have space after #)
                 let quality = if spaces_after_hash > 0 {
@@ -433,7 +440,9 @@ impl MarkdownElements {
     /// Convert heading text to a valid ID for fragment links
     pub fn heading_to_fragment(text: &str) -> String {
         // Remove any HTML tags
-        let text_no_html = regex::Regex::new(r"<[^>]*>").unwrap().replace_all(text, "");
+        let text_no_html = regex::Regex::new(r"<[^>]*>")
+            .unwrap()
+            .replace_all(text, "");
 
         // Convert to lowercase and trim
         let text_lower = text_no_html.trim().to_lowercase();

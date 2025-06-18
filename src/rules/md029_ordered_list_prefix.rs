@@ -100,7 +100,7 @@ impl Rule for MD029OrderedListPrefix {
         let mut indent_stack: Vec<(usize, usize)> = Vec::new(); // (indent, index)
         let lines: Vec<&str> = content.lines().collect();
         let mut byte_pos = 0;
-        
+
         for line in lines.iter() {
             // Skip if in code block
             if ctx.is_in_code_block_or_span(byte_pos) {
@@ -110,7 +110,10 @@ impl Rule for MD029OrderedListPrefix {
                 continue;
             }
             if Self::get_list_number(line).is_some() {
-                let indent = line.chars().take_while(|c| c.is_whitespace()).count();
+                let indent = line
+                    .chars()
+                    .take_while(|c| c.is_whitespace())
+                    .count();
                 // Pop stack if current indent is less than stack top
                 while let Some(&(top_indent, _)) = indent_stack.last() {
                     if indent < top_indent {
@@ -149,11 +152,15 @@ impl Rule for MD029OrderedListPrefix {
                     result.push('\n');
                 } else {
                     // Check if the line is indented enough to be part of a list item
-                    let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
-                    let is_continuation = indent_stack.last()
+                    let line_indent = line
+                        .chars()
+                        .take_while(|c| c.is_whitespace())
+                        .count();
+                    let is_continuation = indent_stack
+                        .last()
                         .map(|&(list_indent, _)| line_indent >= list_indent + 3)
                         .unwrap_or(false);
-                    
+
                     if is_continuation {
                         // This line is part of the list item (indented continuation)
                         result.push_str(line);
@@ -170,7 +177,7 @@ impl Rule for MD029OrderedListPrefix {
                 result.push_str(line);
                 result.push('\n');
             }
-            
+
             byte_pos += line.len() + 1;
         }
         // Remove trailing newline if the original content didn't have one
@@ -307,13 +314,21 @@ impl DocumentStructureExtensions for MD029OrderedListPrefix {
 }
 
 impl MD029OrderedListPrefix {
-    fn check_list_section(&self, items: &[(usize, String)], warnings: &mut Vec<LintWarning>, content: &str) {
+    fn check_list_section(
+        &self,
+        items: &[(usize, String)],
+        warnings: &mut Vec<LintWarning>,
+        content: &str,
+    ) {
         // Group items by indentation level and process each level independently
         let mut level_groups: std::collections::HashMap<usize, Vec<(usize, String)>> =
             std::collections::HashMap::new();
 
         for (line_num, line) in items {
-            let indent = line.chars().take_while(|c| c.is_whitespace()).count();
+            let indent = line
+                .chars()
+                .take_while(|c| c.is_whitespace())
+                .count();
             level_groups
                 .entry(indent)
                 .or_default()
@@ -333,11 +348,11 @@ impl MD029OrderedListPrefix {
                     if actual_num != expected_num {
                         // Create a LineIndex for the actual content
                         let line_index = LineIndex::new(content.to_string());
-                        
+
                         // Find the number position in the line for precise replacement
                         let number_start = line.find(char::is_numeric).unwrap_or(0);
                         let number_len = actual_num.to_string().len();
-                        
+
                         warnings.push(LintWarning {
                             rule_name: Some(self.name()),
                             message: format!(
@@ -350,7 +365,11 @@ impl MD029OrderedListPrefix {
                             end_column: number_start + number_len + 1,
                             severity: Severity::Warning,
                             fix: Some(Fix {
-                                range: line_index.line_col_to_byte_range_with_length(line_num + 1, number_start + 1, number_len),
+                                range: line_index.line_col_to_byte_range_with_length(
+                                    line_num + 1,
+                                    number_start + 1,
+                                    number_len,
+                                ),
                                 replacement: expected_num.to_string(),
                             }),
                         });
@@ -376,14 +395,18 @@ mod tests {
         let content = "1. First item\n2. Second item\n3. Third item";
         let structure = DocumentStructure::new(content);
         let ctx = crate::lint_context::LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert!(result.is_empty());
 
         // Test with incorrectly ordered list
         let content = "1. First item\n3. Third item\n5. Fifth item";
         let structure = DocumentStructure::new(content);
         let ctx = crate::lint_context::LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert_eq!(result.len(), 2); // Should have warnings for items 3 and 5
 
         // Test with one-one style
@@ -391,7 +414,9 @@ mod tests {
         let content = "1. First item\n2. Second item\n3. Third item";
         let structure = DocumentStructure::new(content);
         let ctx = crate::lint_context::LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert_eq!(result.len(), 2); // Should have warnings for items 2 and 3
 
         // Test with ordered0 style
@@ -399,7 +424,9 @@ mod tests {
         let content = "0. First item\n1. Second item\n2. Third item";
         let structure = DocumentStructure::new(content);
         let ctx = crate::lint_context::LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert!(result.is_empty());
     }
 
@@ -417,12 +444,22 @@ mod tests {
         let ctx = crate::lint_context::LintContext::new(content);
 
         // This should not panic and should produce warnings for incorrect numbering
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert_eq!(result.len(), 2); // Should have warnings for items 3 and 2
 
         // Verify the warnings have correct content
-        assert!(result[0].message.contains("3 does not match style (expected 2)"));
-        assert!(result[1].message.contains("2 does not match style (expected 3)"));
+        assert!(
+            result[0]
+                .message
+                .contains("3 does not match style (expected 2)")
+        );
+        assert!(
+            result[1]
+                .message
+                .contains("2 does not match style (expected 3)")
+        );
     }
 
     #[test]
@@ -440,11 +477,21 @@ mod tests {
         let ctx = crate::lint_context::LintContext::new(&content);
 
         // This should complete without issues and produce warnings for all items
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert_eq!(result.len(), 100); // Should have warnings for all 100 items
 
         // Verify first and last warnings
-        assert!(result[0].message.contains("2 does not match style (expected 1)"));
-        assert!(result[99].message.contains("101 does not match style (expected 100)"));
+        assert!(
+            result[0]
+                .message
+                .contains("2 does not match style (expected 1)")
+        );
+        assert!(
+            result[99]
+                .message
+                .contains("101 does not match style (expected 100)")
+        );
     }
 }

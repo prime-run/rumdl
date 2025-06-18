@@ -1,7 +1,7 @@
+use crate::HeadingStyle;
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
 use crate::rules::heading_utils::HeadingUtils;
-use crate::utils::range_utils::{calculate_heading_range, LineIndex};
-use crate::HeadingStyle;
+use crate::utils::range_utils::{LineIndex, calculate_heading_range};
 
 /// Rule MD001: Heading levels should only increment by one level at a time
 ///
@@ -92,8 +92,11 @@ impl Rule for MD001HeadingIncrement {
 
                     // Create a fix with the correct heading level
                     let fixed_level = prev_level + 1;
-                    let replacement =
-                        HeadingUtils::convert_heading_style(heading_text, fixed_level as u32, style);
+                    let replacement = HeadingUtils::convert_heading_style(
+                        heading_text,
+                        fixed_level as u32,
+                        style,
+                    );
 
                     // Calculate precise range: highlight the entire heading
                     let line_content = &line_info.content;
@@ -196,7 +199,6 @@ impl Rule for MD001HeadingIncrement {
         Box::new(MD001HeadingIncrement)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

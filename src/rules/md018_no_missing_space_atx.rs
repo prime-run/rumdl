@@ -23,45 +23,56 @@ impl MD018NoMissingSpaceAtx {
         // Look for ATX marker at start of line (with optional indentation)
         let trimmed_line = line.trim_start();
         let indent = line.len() - trimmed_line.len();
-        
+
         if !trimmed_line.starts_with('#') {
             return None;
         }
-        
+
         // Count the number of hashes
-        let hash_count = trimmed_line.chars().take_while(|&c| c == '#').count();
+        let hash_count = trimmed_line
+            .chars()
+            .take_while(|&c| c == '#')
+            .count();
         if hash_count == 0 || hash_count > 6 {
             return None;
         }
-        
+
         // Check what comes after the hashes
         let after_hashes = &trimmed_line[hash_count..];
-        
+
         // If there's content immediately after hashes (no space), it needs fixing
-        if !after_hashes.is_empty() && !after_hashes.starts_with(' ') && !after_hashes.starts_with('\t') {
+        if !after_hashes.is_empty()
+            && !after_hashes.starts_with(' ')
+            && !after_hashes.starts_with('\t')
+        {
             // Additional checks to avoid false positives
             let content = after_hashes.trim();
-            
+
             // Skip if it's just more hashes (horizontal rule)
             if content.chars().all(|c| c == '#') {
                 return None;
             }
-            
+
             // Skip if content is too short to be meaningful
             if content.len() < 2 {
                 return None;
             }
-            
+
             // Skip if it starts with emphasis markers
             if content.starts_with('*') || content.starts_with('_') {
                 return None;
             }
-            
+
             // This looks like a malformed heading that needs a space
-            let fixed = format!("{}{} {}", " ".repeat(indent), "#".repeat(hash_count), after_hashes);
+            let fixed = format!(
+                "{}{} {}",
+                " ".repeat(indent),
+                "#".repeat(hash_count),
+                after_hashes
+            );
             return Some((indent + hash_count, fixed));
         }
-        
+
         None
     }
 
@@ -102,7 +113,7 @@ impl Rule for MD018NoMissingSpaceAtx {
 
     fn check(&self, ctx: &crate::lint_context::LintContext) -> LintResult {
         let mut warnings = Vec::new();
-        
+
         // Check all lines that have ATX headings from cached info
         for (line_num, line_info) in ctx.lines.iter().enumerate() {
             if let Some(heading) = &line_info.heading {
@@ -111,18 +122,22 @@ impl Rule for MD018NoMissingSpaceAtx {
                     // Check if there's a space after the marker
                     let line = &line_info.content;
                     let trimmed = line.trim_start();
-                    
+
                     if trimmed.len() > heading.marker.len() {
                         let after_marker = &trimmed[heading.marker.len()..];
-                        if !after_marker.is_empty() && !after_marker.starts_with(' ') && !after_marker.starts_with('\t') {
+                        if !after_marker.is_empty()
+                            && !after_marker.starts_with(' ')
+                            && !after_marker.starts_with('\t')
+                        {
                             // Missing space after ATX marker
                             let hash_end_col = line_info.indent + heading.marker.len() + 1; // 1-indexed
-                            let (start_line, start_col, end_line, end_col) = calculate_single_line_range(
-                                line_num + 1, // Convert to 1-indexed
-                                hash_end_col,
-                                0, // Zero-width to indicate missing space
-                            );
-                            
+                            let (start_line, start_col, end_line, end_col) =
+                                calculate_single_line_range(
+                                    line_num + 1, // Convert to 1-indexed
+                                    hash_end_col,
+                                    0, // Zero-width to indicate missing space
+                                );
+
                             warnings.push(LintWarning {
                                 rule_name: Some(self.name()),
                                 message: format!(
@@ -149,13 +164,15 @@ impl Rule for MD018NoMissingSpaceAtx {
                 }
             } else if !line_info.in_code_block && !line_info.is_blank {
                 // Check for malformed headings that weren't detected as proper headings
-                if let Some((hash_end_pos, fixed_line)) = self.check_atx_heading_line(&line_info.content) {
+                if let Some((hash_end_pos, fixed_line)) =
+                    self.check_atx_heading_line(&line_info.content)
+                {
                     let (start_line, start_col, end_line, end_col) = calculate_single_line_range(
-                        line_num + 1, // Convert to 1-indexed
+                        line_num + 1,     // Convert to 1-indexed
                         hash_end_pos + 1, // 1-indexed column
-                        0, // Zero-width to indicate missing space
+                        0,                // Zero-width to indicate missing space
                     );
-                    
+
                     warnings.push(LintWarning {
                         rule_name: Some(self.name()),
                         message: "No space after hash in heading".to_string(),
@@ -172,25 +189,28 @@ impl Rule for MD018NoMissingSpaceAtx {
                 }
             }
         }
-        
+
         Ok(warnings)
     }
 
     fn fix(&self, ctx: &crate::lint_context::LintContext) -> Result<String, LintError> {
         let mut lines = Vec::new();
-        
+
         for (_line_num, line_info) in ctx.lines.iter().enumerate() {
             let mut fixed = false;
-            
+
             if let Some(heading) = &line_info.heading {
                 // Fix ATX headings missing space
                 if matches!(heading.style, crate::lint_context::HeadingStyle::ATX) {
                     let line = &line_info.content;
                     let trimmed = line.trim_start();
-                    
+
                     if trimmed.len() > heading.marker.len() {
                         let after_marker = &trimmed[heading.marker.len()..];
-                        if !after_marker.is_empty() && !after_marker.starts_with(' ') && !after_marker.starts_with('\t') {
+                        if !after_marker.is_empty()
+                            && !after_marker.starts_with(' ')
+                            && !after_marker.starts_with('\t')
+                        {
                             // Add space after marker
                             lines.push(format!(
                                 "{}{} {}",
@@ -209,18 +229,18 @@ impl Rule for MD018NoMissingSpaceAtx {
                     fixed = true;
                 }
             }
-            
+
             if !fixed {
                 lines.push(line_info.content.clone());
             }
         }
-        
+
         // Reconstruct content preserving line endings
         let mut result = lines.join("\n");
         if ctx.content.ends_with('\n') && !result.ends_with('\n') {
             result.push('\n');
         }
-        
+
         Ok(result)
     }
 
@@ -280,19 +300,52 @@ mod tests {
         let rule = MD018NoMissingSpaceAtx::new();
 
         // Test the check_atx_heading_line method
-        assert!(rule.check_atx_heading_line("##Introduction").is_some());
-        assert!(rule.check_atx_heading_line("###Background").is_some());
-        assert!(rule.check_atx_heading_line("####Details").is_some());
-        assert!(rule.check_atx_heading_line("#Summary").is_some());
-        assert!(rule.check_atx_heading_line("######Conclusion").is_some());
-        assert!(rule.check_atx_heading_line("##Table of Contents").is_some());
+        assert!(
+            rule.check_atx_heading_line("##Introduction")
+                .is_some()
+        );
+        assert!(
+            rule.check_atx_heading_line("###Background")
+                .is_some()
+        );
+        assert!(
+            rule.check_atx_heading_line("####Details")
+                .is_some()
+        );
+        assert!(
+            rule.check_atx_heading_line("#Summary")
+                .is_some()
+        );
+        assert!(
+            rule.check_atx_heading_line("######Conclusion")
+                .is_some()
+        );
+        assert!(
+            rule.check_atx_heading_line("##Table of Contents")
+                .is_some()
+        );
 
         // Should NOT detect these
-        assert!(rule.check_atx_heading_line("###").is_none()); // Just hashes
-        assert!(rule.check_atx_heading_line("#").is_none()); // Single hash
-        assert!(rule.check_atx_heading_line("##a").is_none()); // Too short
-        assert!(rule.check_atx_heading_line("#*emphasis").is_none()); // Emphasis marker
-        assert!(rule.check_atx_heading_line("#######TooBig").is_none()); // More than 6 hashes
+        assert!(
+            rule.check_atx_heading_line("###")
+                .is_none()
+        ); // Just hashes
+        assert!(
+            rule.check_atx_heading_line("#")
+                .is_none()
+        ); // Single hash
+        assert!(
+            rule.check_atx_heading_line("##a")
+                .is_none()
+        ); // Too short
+        assert!(
+            rule.check_atx_heading_line("#*emphasis")
+                .is_none()
+        ); // Emphasis marker
+        assert!(
+            rule.check_atx_heading_line("#######TooBig")
+                .is_none()
+        ); // More than 6 hashes
     }
 
     #[test]

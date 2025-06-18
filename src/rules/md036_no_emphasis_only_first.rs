@@ -5,7 +5,7 @@
 
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, Severity};
 use crate::utils::document_structure::DocumentStructure;
-use crate::utils::range_utils::{calculate_emphasis_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_emphasis_range};
 use lazy_static::lazy_static;
 use regex::Regex;
 use toml;
@@ -48,7 +48,7 @@ impl MD036NoEmphasisAsHeading {
             config: MD036Config { punctuation },
         }
     }
-    
+
     pub fn from_config_struct(config: MD036Config) -> Self {
         Self { config }
     }
@@ -89,11 +89,16 @@ impl MD036NoEmphasisAsHeading {
         // Check for *emphasis* pattern (entire line)
         if let Some(caps) = RE_ASTERISK_SINGLE.captures(line) {
             let full_match = caps.get(0).unwrap();
-            let start_pos = original_line.find(full_match.as_str()).unwrap_or(0);
+            let start_pos = original_line
+                .find(full_match.as_str())
+                .unwrap_or(0);
             let end_pos = start_pos + full_match.len();
             return Some((
                 1,
-                caps.get(1).unwrap().as_str().to_string(),
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 start_pos,
                 end_pos,
             ));
@@ -102,11 +107,16 @@ impl MD036NoEmphasisAsHeading {
         // Check for _emphasis_ pattern (entire line)
         if let Some(caps) = RE_UNDERSCORE_SINGLE.captures(line) {
             let full_match = caps.get(0).unwrap();
-            let start_pos = original_line.find(full_match.as_str()).unwrap_or(0);
+            let start_pos = original_line
+                .find(full_match.as_str())
+                .unwrap_or(0);
             let end_pos = start_pos + full_match.len();
             return Some((
                 1,
-                caps.get(1).unwrap().as_str().to_string(),
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 start_pos,
                 end_pos,
             ));
@@ -115,11 +125,16 @@ impl MD036NoEmphasisAsHeading {
         // Check for **strong** pattern (entire line)
         if let Some(caps) = RE_ASTERISK_DOUBLE.captures(line) {
             let full_match = caps.get(0).unwrap();
-            let start_pos = original_line.find(full_match.as_str()).unwrap_or(0);
+            let start_pos = original_line
+                .find(full_match.as_str())
+                .unwrap_or(0);
             let end_pos = start_pos + full_match.len();
             return Some((
                 2,
-                caps.get(1).unwrap().as_str().to_string(),
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 start_pos,
                 end_pos,
             ));
@@ -128,11 +143,16 @@ impl MD036NoEmphasisAsHeading {
         // Check for __strong__ pattern (entire line)
         if let Some(caps) = RE_UNDERSCORE_DOUBLE.captures(line) {
             let full_match = caps.get(0).unwrap();
-            let start_pos = original_line.find(full_match.as_str()).unwrap_or(0);
+            let start_pos = original_line
+                .find(full_match.as_str())
+                .unwrap_or(0);
             let end_pos = start_pos + full_match.len();
             return Some((
                 2,
-                caps.get(1).unwrap().as_str().to_string(),
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 start_pos,
                 end_pos,
             ));
@@ -147,8 +167,13 @@ impl MD036NoEmphasisAsHeading {
         let text = if self.config.punctuation.is_empty() {
             text.trim()
         } else {
-            let chars_to_remove: Vec<char> = self.config.punctuation.chars().collect();
-            text.trim().trim_end_matches(&chars_to_remove[..])
+            let chars_to_remove: Vec<char> = self
+                .config
+                .punctuation
+                .chars()
+                .collect();
+            text.trim()
+                .trim_end_matches(&chars_to_remove[..])
         };
 
         // Split long text into multiple lines if needed

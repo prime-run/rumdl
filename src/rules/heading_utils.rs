@@ -95,10 +95,15 @@ impl HeadingUtils {
             let trimmed = line.trim();
             if trimmed.len() >= 3 {
                 let first_chars: Vec<char> = trimmed.chars().take(3).collect();
-                if first_chars.iter().all(|&c| c == '`' || c == '~') {
+                if first_chars
+                    .iter()
+                    .all(|&c| c == '`' || c == '~')
+                {
                     if let Some(current_fence) = fence_char {
                         if first_chars[0] == current_fence
-                            && first_chars.iter().all(|&c| c == current_fence)
+                            && first_chars
+                                .iter()
+                                .all(|&c| c == current_fence)
                         {
                             in_code_block = false;
                             fence_char = None;
@@ -130,10 +135,18 @@ impl HeadingUtils {
 
         // Check for ATX style headings
         if let Some(captures) = ATX_PATTERN.captures(line) {
-            let indentation = captures.get(1).map_or("", |m| m.as_str()).to_string();
-            let opening_hashes = captures.get(2).map_or("", |m| m.as_str());
+            let indentation = captures
+                .get(1)
+                .map_or("", |m| m.as_str())
+                .to_string();
+            let opening_hashes = captures
+                .get(2)
+                .map_or("", |m| m.as_str());
             let level = opening_hashes.len() as u32;
-            let text = captures.get(4).map_or("", |m| m.as_str()).to_string();
+            let text = captures
+                .get(4)
+                .map_or("", |m| m.as_str())
+                .to_string();
 
             let style = if let Some(closing) = captures.get(5) {
                 let closing_hashes = closing.as_str();
@@ -185,7 +198,9 @@ impl HeadingUtils {
             }
 
             if let Some(captures) = SETEXT_HEADING_1.captures(next_line) {
-                let underline_indent = captures.get(1).map_or("", |m| m.as_str());
+                let underline_indent = captures
+                    .get(1)
+                    .map_or("", |m| m.as_str());
                 if underline_indent == line_indentation {
                     let heading = Heading {
                         text: line[line_indentation.len()..].to_string(),
@@ -198,7 +213,9 @@ impl HeadingUtils {
                     return Some(heading);
                 }
             } else if let Some(captures) = SETEXT_HEADING_2.captures(next_line) {
-                let underline_indent = captures.get(1).map_or("", |m| m.as_str());
+                let underline_indent = captures
+                    .get(1)
+                    .map_or("", |m| m.as_str());
                 if underline_indent == line_indentation {
                     let heading = Heading {
                         text: line[line_indentation.len()..].to_string(),
@@ -275,7 +292,9 @@ impl HeadingUtils {
                         indentation,
                         text_content,
                         indentation,
-                        underline_char.to_string().repeat(underline_length)
+                        underline_char
+                            .to_string()
+                            .repeat(underline_length)
                     )
                 }
             }
@@ -293,13 +312,15 @@ impl HeadingUtils {
 
     /// Get the text content of a heading line
     pub fn get_heading_text(line: &str) -> Option<String> {
-        ATX_PATTERN.captures(line).map(|captures| {
-            captures
-                .get(4)
-                .map_or("", |m| m.as_str())
-                .trim()
-                .to_string()
-        })
+        ATX_PATTERN
+            .captures(line)
+            .map(|captures| {
+                captures
+                    .get(4)
+                    .map_or("", |m| m.as_str())
+                    .trim()
+                    .to_string()
+            })
     }
 
     /// Detect emphasis-only lines
@@ -316,19 +337,47 @@ impl HeadingUtils {
         let trimmed = line.trim();
 
         if let Some(caps) = SINGLE_LINE_ASTERISK_EMPHASIS.captures(trimmed) {
-            return Some((caps.get(1).unwrap().as_str().trim().to_string(), 1));
+            return Some((
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .trim()
+                    .to_string(),
+                1,
+            ));
         }
 
         if let Some(caps) = SINGLE_LINE_UNDERSCORE_EMPHASIS.captures(trimmed) {
-            return Some((caps.get(1).unwrap().as_str().trim().to_string(), 1));
+            return Some((
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .trim()
+                    .to_string(),
+                1,
+            ));
         }
 
         if let Some(caps) = SINGLE_LINE_DOUBLE_ASTERISK_EMPHASIS.captures(trimmed) {
-            return Some((caps.get(1).unwrap().as_str().trim().to_string(), 2));
+            return Some((
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .trim()
+                    .to_string(),
+                2,
+            ));
         }
 
         if let Some(caps) = SINGLE_LINE_DOUBLE_UNDERSCORE_EMPHASIS.captures(trimmed) {
-            return Some((caps.get(1).unwrap().as_str().trim().to_string(), 2));
+            return Some((
+                caps.get(1)
+                    .unwrap()
+                    .as_str()
+                    .trim()
+                    .to_string(),
+                2,
+            ));
         }
 
         None
@@ -468,12 +517,16 @@ pub fn is_setext_heading(lines: &[&str], index: usize) -> bool {
         .collect::<String>();
 
     if let Some(captures) = SETEXT_HEADING_1.captures(next_line) {
-        let underline_indent = captures.get(1).map_or("", |m| m.as_str());
+        let underline_indent = captures
+            .get(1)
+            .map_or("", |m| m.as_str());
         return underline_indent == current_indentation;
     }
 
     if let Some(captures) = SETEXT_HEADING_2.captures(next_line) {
-        let underline_indent = captures.get(1).map_or("", |m| m.as_str());
+        let underline_indent = captures
+            .get(1)
+            .map_or("", |m| m.as_str());
         return underline_indent == current_indentation;
     }
 
@@ -491,7 +544,9 @@ pub fn get_heading_level(lines: &[&str], index: usize) -> u32 {
 
     // Check for ATX style heading
     if let Some(captures) = ATX_PATTERN.captures(line) {
-        let hashes = captures.get(2).map_or("", |m| m.as_str());
+        let hashes = captures
+            .get(2)
+            .map_or("", |m| m.as_str());
         return hashes.len() as u32;
     }
 
@@ -538,16 +593,24 @@ pub fn extract_heading_text(lines: &[&str], index: usize) -> String {
             .collect::<String>();
 
         if let Some(captures) = SETEXT_HEADING_1.captures(next_line) {
-            let underline_indent = captures.get(1).map_or("", |m| m.as_str());
+            let underline_indent = captures
+                .get(1)
+                .map_or("", |m| m.as_str());
             if underline_indent == line_indentation {
-                return line[line_indentation.len()..].trim().to_string();
+                return line[line_indentation.len()..]
+                    .trim()
+                    .to_string();
             }
         }
 
         if let Some(captures) = SETEXT_HEADING_2.captures(next_line) {
-            let underline_indent = captures.get(1).map_or("", |m| m.as_str());
+            let underline_indent = captures
+                .get(1)
+                .map_or("", |m| m.as_str());
             if underline_indent == line_indentation {
-                return line[line_indentation.len()..].trim().to_string();
+                return line[line_indentation.len()..]
+                    .trim()
+                    .to_string();
             }
         }
     }
@@ -626,17 +689,42 @@ mod tests {
     fn test_atx_heading_parsing() {
         let content = "# Heading 1\n## Heading 2\n### Heading 3";
         assert!(HeadingUtils::parse_heading(content, 1).is_some());
-        assert_eq!(HeadingUtils::parse_heading(content, 1).unwrap().level, 1);
-        assert_eq!(HeadingUtils::parse_heading(content, 2).unwrap().level, 2);
-        assert_eq!(HeadingUtils::parse_heading(content, 3).unwrap().level, 3);
+        assert_eq!(
+            HeadingUtils::parse_heading(content, 1)
+                .unwrap()
+                .level,
+            1
+        );
+        assert_eq!(
+            HeadingUtils::parse_heading(content, 2)
+                .unwrap()
+                .level,
+            2
+        );
+        assert_eq!(
+            HeadingUtils::parse_heading(content, 3)
+                .unwrap()
+                .level,
+            3
+        );
     }
 
     #[test]
     fn test_setext_heading_parsing() {
         let content = "Heading 1\n=========\nHeading 2\n---------";
         assert!(HeadingUtils::parse_heading(content, 1).is_some());
-        assert_eq!(HeadingUtils::parse_heading(content, 1).unwrap().level, 1);
-        assert_eq!(HeadingUtils::parse_heading(content, 3).unwrap().level, 2);
+        assert_eq!(
+            HeadingUtils::parse_heading(content, 1)
+                .unwrap()
+                .level,
+            1
+        );
+        assert_eq!(
+            HeadingUtils::parse_heading(content, 3)
+                .unwrap()
+                .level,
+            2
+        );
     }
 
     #[test]

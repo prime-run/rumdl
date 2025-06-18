@@ -1,5 +1,5 @@
 use crate::rule::{LintError, LintResult, LintWarning, Rule, Severity};
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 use crate::utils::table_utils::TableUtils;
 
 mod md055_config;
@@ -82,14 +82,13 @@ pub struct MD055TablePipeStyle {
     config: MD055Config,
 }
 
-
 impl MD055TablePipeStyle {
     pub fn new(style: String) -> Self {
         Self {
             config: MD055Config { style },
         }
     }
-    
+
     pub fn from_config_struct(config: MD055Config) -> Self {
         Self { config }
     }
@@ -112,22 +111,28 @@ impl MD055TablePipeStyle {
         let mut content_parts = Vec::new();
 
         // Extract the actual content (skip empty leading/trailing parts)
-        let start_idx = if parts.first().map_or(false, |p| p.trim().is_empty()) {
+        let start_idx = if parts
+            .first()
+            .map_or(false, |p| p.trim().is_empty())
+        {
             1
         } else {
             0
         };
-        let end_idx = if parts.last().map_or(false, |p| p.trim().is_empty()) {
-            if parts.len() > 0 {
-                parts.len() - 1
-            } else {
-                0
-            }
+        let end_idx = if parts
+            .last()
+            .map_or(false, |p| p.trim().is_empty())
+        {
+            if parts.len() > 0 { parts.len() - 1 } else { 0 }
         } else {
             parts.len()
         };
 
-        for part in parts.iter().take(end_idx).skip(start_idx) {
+        for part in parts
+            .iter()
+            .take(end_idx)
+            .skip(start_idx)
+        {
             // Trim each part to remove extra spaces, but preserve the content
             content_parts.push(part.trim());
         }
@@ -236,7 +241,12 @@ impl Rule for MD055TablePipeStyle {
             // Check all rows in the table
             let all_lines = std::iter::once(table_block.header_line)
                 .chain(std::iter::once(table_block.delimiter_line))
-                .chain(table_block.content_lines.iter().copied());
+                .chain(
+                    table_block
+                        .content_lines
+                        .iter()
+                        .copied(),
+                );
 
             for line_idx in all_lines {
                 let line = lines[line_idx];
@@ -343,7 +353,12 @@ impl Rule for MD055TablePipeStyle {
             // Fix all rows in the table
             let all_lines = std::iter::once(table_block.header_line)
                 .chain(std::iter::once(table_block.delimiter_line))
-                .chain(table_block.content_lines.iter().copied());
+                .chain(
+                    table_block
+                        .content_lines
+                        .iter()
+                        .copied(),
+                );
 
             for line_idx in all_lines {
                 let line = lines[line_idx];

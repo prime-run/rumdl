@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::rule_config_serde::RuleConfig;
+use serde::{Deserialize, Serialize};
 
 /// Configuration for MD002 (First heading should be top level)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -188,7 +188,10 @@ pub fn all_rules(config: &crate::config::Config) -> Vec<Box<dyn Rule>> {
         ("MD057", MD057ExistingRelativeLinks::from_config),
         ("MD058", MD058BlanksAroundTables::from_config),
     ];
-    RULES.iter().map(|(_, ctor)| ctor(config)).collect()
+    RULES
+        .iter()
+        .map(|(_, ctor)| ctor(config))
+        .collect()
 }
 
 // Filter rules based on config (moved from main.rs)
@@ -198,13 +201,21 @@ use std::collections::HashSet;
 
 pub fn filter_rules(rules: &[Box<dyn Rule>], global_config: &GlobalConfig) -> Vec<Box<dyn Rule>> {
     let mut enabled_rules: Vec<Box<dyn Rule>> = Vec::new();
-    let disabled_rules: HashSet<String> = global_config.disable.iter().cloned().collect();
+    let disabled_rules: HashSet<String> = global_config
+        .disable
+        .iter()
+        .cloned()
+        .collect();
 
     // Handle 'disable: ["all"]'
     if disabled_rules.contains("all") {
         // If 'enable' is also provided, only those rules are enabled, overriding "disable all"
         if !global_config.enable.is_empty() {
-            let enabled_set: HashSet<String> = global_config.enable.iter().cloned().collect();
+            let enabled_set: HashSet<String> = global_config
+                .enable
+                .iter()
+                .cloned()
+                .collect();
             for rule in rules {
                 if enabled_set.contains(rule.name()) {
                     // Clone the rule (rules need to implement Clone or we need another approach)
@@ -222,7 +233,11 @@ pub fn filter_rules(rules: &[Box<dyn Rule>], global_config: &GlobalConfig) -> Ve
 
     // If 'enable' is specified, only use those rules
     if !global_config.enable.is_empty() {
-        let enabled_set: HashSet<String> = global_config.enable.iter().cloned().collect();
+        let enabled_set: HashSet<String> = global_config
+            .enable
+            .iter()
+            .cloned()
+            .collect();
         for rule in rules {
             if enabled_set.contains(rule.name()) && !disabled_rules.contains(rule.name()) {
                 enabled_rules.push(dyn_clone::clone_box(&**rule));

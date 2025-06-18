@@ -13,7 +13,7 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
 
 use crate::config::Config;
-use crate::lsp::types::{warning_to_code_action, warning_to_diagnostic, RumdlLspConfig};
+use crate::lsp::types::{RumdlLspConfig, warning_to_code_action, warning_to_diagnostic};
 use crate::rules;
 
 /// Main LSP server for rumdl
@@ -62,7 +62,10 @@ impl RumdlLanguageServer {
         // Run rumdl linting
         match crate::lint(text, &all_rules, false) {
             Ok(warnings) => {
-                let diagnostics = warnings.iter().map(warning_to_diagnostic).collect();
+                let diagnostics = warnings
+                    .iter()
+                    .map(warning_to_diagnostic)
+                    .collect();
                 Ok(diagnostics)
             }
             Err(e) => {
@@ -120,7 +123,7 @@ impl RumdlLanguageServer {
         }
     }
 
-        /// Load or reload rumdl configuration from files
+    /// Load or reload rumdl configuration from files
     async fn load_configuration(&self, notify_client: bool) {
         let config_guard = self.config.read().await;
         let explicit_config_path = config_guard.config_path.clone();
@@ -230,8 +233,6 @@ impl LanguageServer for RumdlLanguageServer {
         self.reload_configuration().await;
     }
 
-
-
     async fn shutdown(&self) -> JsonRpcResult<()> {
         log::info!("Shutting down rumdl Language Server");
         Ok(())
@@ -255,7 +256,11 @@ impl LanguageServer for RumdlLanguageServer {
         let uri = params.text_document.uri;
 
         // Apply changes (we're using FULL sync, so just take the full text)
-        if let Some(change) = params.content_changes.into_iter().next() {
+        if let Some(change) = params
+            .content_changes
+            .into_iter()
+            .next()
+        {
             let text = change.text;
 
             // Update stored document
@@ -281,7 +286,12 @@ impl LanguageServer for RumdlLanguageServer {
         drop(config_guard);
 
         // Re-lint the document
-        if let Some(text) = self.documents.read().await.get(&params.text_document.uri) {
+        if let Some(text) = self
+            .documents
+            .read()
+            .await
+            .get(&params.text_document.uri)
+        {
             self.update_diagnostics(params.text_document.uri, text.clone())
                 .await;
         }
@@ -308,7 +318,10 @@ impl LanguageServer for RumdlLanguageServer {
         let range = params.range;
 
         if let Some(text) = self.documents.read().await.get(&uri) {
-            match self.get_code_actions(&uri, text, range).await {
+            match self
+                .get_code_actions(&uri, text, range)
+                .await
+            {
                 Ok(actions) => {
                     let response: Vec<CodeActionOrCommand> = actions
                         .into_iter()

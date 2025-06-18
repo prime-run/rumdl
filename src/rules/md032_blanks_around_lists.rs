@@ -1,7 +1,7 @@
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
 use crate::utils::document_structure::document_structure_from_str;
 use crate::utils::document_structure::{DocumentStructure, DocumentStructureExtensions};
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -90,7 +90,7 @@ pub struct MD032BlanksAroundLists {
 impl Default for MD032BlanksAroundLists {
     fn default() -> Self {
         Self {
-            allow_after_headings: true,    // More lenient by default
+            allow_after_headings: true, // More lenient by default
             allow_after_colons: true,
         }
     }
@@ -105,11 +105,18 @@ impl MD032BlanksAroundLists {
     }
 
     /// Check if a blank line should be required before a list based on the previous line context
-    fn should_require_blank_line_before(&self, prev_line: &str, ctx: &crate::lint_context::LintContext, structure: &DocumentStructure, prev_line_num: usize) -> bool {
+    fn should_require_blank_line_before(
+        &self,
+        prev_line: &str,
+        ctx: &crate::lint_context::LintContext,
+        structure: &DocumentStructure,
+        prev_line_num: usize,
+    ) -> bool {
         let trimmed_prev = prev_line.trim();
-        
+
         // Always require blank lines after code blocks, front matter, etc.
-        if structure.is_in_code_block(prev_line_num) || structure.is_in_front_matter(prev_line_num) {
+        if structure.is_in_code_block(prev_line_num) || structure.is_in_front_matter(prev_line_num)
+        {
             return true;
         }
 
@@ -128,7 +135,11 @@ impl MD032BlanksAroundLists {
     }
 
     /// Check if a line is a heading using cached LintContext info
-    fn is_heading_line_from_context(&self, ctx: &crate::lint_context::LintContext, line_idx: usize) -> bool {
+    fn is_heading_line_from_context(
+        &self,
+        ctx: &crate::lint_context::LintContext,
+        line_idx: usize,
+    ) -> bool {
         if line_idx < ctx.lines.len() {
             ctx.lines[line_idx].heading.is_some()
         } else {
@@ -136,24 +147,23 @@ impl MD032BlanksAroundLists {
         }
     }
 
-
     // Convert centralized list blocks to the format expected by perform_checks
     fn convert_list_blocks(
         &self,
         ctx: &crate::lint_context::LintContext,
     ) -> Vec<(usize, usize, String)> {
         let mut blocks: Vec<(usize, usize, String)> = Vec::new();
-        
+
         for block in &ctx.list_blocks {
             // For MD032, we need to check if there are code blocks that should
             // split the list into separate segments
-            
+
             // Simple approach: if there's a fenced code block between list items,
             // split at that point
             let mut segments: Vec<(usize, usize)> = Vec::new();
             let mut current_start = block.start_line;
             let mut prev_item_line = 0;
-            
+
             for &item_line in &block.item_lines {
                 if prev_item_line > 0 {
                     // Check if there's a fenced code block between prev_item_line and item_line
@@ -161,13 +171,16 @@ impl MD032BlanksAroundLists {
                     for check_line in (prev_item_line + 1)..item_line {
                         if check_line - 1 < ctx.lines.len() {
                             let line = &ctx.lines[check_line - 1];
-                            if line.in_code_block && (line.content.trim().starts_with("```") || line.content.trim().starts_with("~~~")) {
+                            if line.in_code_block
+                                && (line.content.trim().starts_with("```")
+                                    || line.content.trim().starts_with("~~~"))
+                            {
                                 has_code_fence = true;
                                 break;
                             }
                         }
                     }
-                    
+
                     if has_code_fence {
                         // End current segment before this item
                         segments.push((current_start, prev_item_line));
@@ -176,84 +189,92 @@ impl MD032BlanksAroundLists {
                 }
                 prev_item_line = item_line;
             }
-            
+
             // Add the final segment
             // For the last segment, end at the last list item (not the full block end)
             if prev_item_line > 0 {
                 segments.push((current_start, prev_item_line));
             }
-            
+
             // Check if this list block was split by code fences
             let has_code_fence_splits = segments.len() > 1 && {
                 // Check if any segments were created due to code fences
                 let mut found_fence = false;
-                for i in 0..segments.len()-1 {
+                for i in 0..segments.len() - 1 {
                     let seg_end = segments[i].1;
-                    let next_start = segments[i+1].0;
+                    let next_start = segments[i + 1].0;
                     // Check if there's a code fence between these segments
                     for check_line in (seg_end + 1)..next_start {
                         if check_line - 1 < ctx.lines.len() {
                             let line = &ctx.lines[check_line - 1];
-                            if line.in_code_block && (line.content.trim().starts_with("```") || line.content.trim().starts_with("~~~")) {
+                            if line.in_code_block
+                                && (line.content.trim().starts_with("```")
+                                    || line.content.trim().starts_with("~~~"))
+                            {
                                 found_fence = true;
                                 break;
                             }
                         }
                     }
-                    if found_fence { break; }
+                    if found_fence {
+                        break;
+                    }
                 }
                 found_fence
             };
-            
+
             // Convert segments to blocks
             for (_idx, (start, end)) in segments.iter().enumerate() {
                 // Extend the end to include any continuation lines immediately after the last item
                 let mut actual_end = *end;
-                
+
                 // If this list was split by code fences, don't extend any segments
                 // They should remain as individual list items for MD032 purposes
                 if !has_code_fence_splits && *end < block.end_line {
-                        for check_line in (*end + 1)..=block.end_line {
-                            if check_line - 1 < ctx.lines.len() {
-                                let line = &ctx.lines[check_line - 1];
-                                // Stop at next list item or non-continuation content
-                                if block.item_lines.contains(&check_line) || line.heading.is_some() {
-                                    break;
-                                }
-                                // Don't extend through code blocks
-                                if line.in_code_block {
-                                    break;
-                                }
-                                // Include indented continuation
-                                if line.indent >= 2 {
+                    for check_line in (*end + 1)..=block.end_line {
+                        if check_line - 1 < ctx.lines.len() {
+                            let line = &ctx.lines[check_line - 1];
+                            // Stop at next list item or non-continuation content
+                            if block.item_lines.contains(&check_line) || line.heading.is_some() {
+                                break;
+                            }
+                            // Don't extend through code blocks
+                            if line.in_code_block {
+                                break;
+                            }
+                            // Include indented continuation
+                            if line.indent >= 2 {
+                                actual_end = check_line;
+                            }
+                            // Include lazy continuation only if it's not a separate paragraph
+                            else if check_line == *end + 1
+                                && !line.is_blank
+                                && !line.heading.is_some()
+                            {
+                                // Check if this looks like list continuation vs new paragraph
+                                // Simple heuristic: if it starts with uppercase and the list item ended with punctuation,
+                                // it's likely a new paragraph
+                                let is_likely_new_paragraph = {
+                                    let first_char = line.content.trim().chars().next();
+                                    first_char.map_or(false, |c| c.is_uppercase())
+                                };
+
+                                if !is_likely_new_paragraph {
                                     actual_end = check_line;
-                                }
-                                // Include lazy continuation only if it's not a separate paragraph
-                                else if check_line == *end + 1 && !line.is_blank && !line.heading.is_some() {
-                                    // Check if this looks like list continuation vs new paragraph
-                                    // Simple heuristic: if it starts with uppercase and the list item ended with punctuation,
-                                    // it's likely a new paragraph
-                                    let is_likely_new_paragraph = {
-                                        let first_char = line.content.trim().chars().next();
-                                        first_char.map_or(false, |c| c.is_uppercase())
-                                    };
-                                    
-                                    if !is_likely_new_paragraph {
-                                        actual_end = check_line;
-                                    } else {
-                                        break;
-                                    }
-                                } else if !line.is_blank {
+                                } else {
                                     break;
                                 }
+                            } else if !line.is_blank {
+                                break;
                             }
                         }
+                    }
                 }
-                
+
                 blocks.push((*start, actual_end, block.blockquote_prefix.clone()));
             }
         }
-        
+
         blocks
     }
 
@@ -283,7 +304,12 @@ impl MD032BlanksAroundLists {
 
                 // Only require blank lines for content in the same context (same blockquote level)
                 // and when the context actually requires it
-                let should_require = self.should_require_blank_line_before(prev_line_str, ctx, structure, prev_line_actual_idx_1);
+                let should_require = self.should_require_blank_line_before(
+                    prev_line_str,
+                    ctx,
+                    structure,
+                    prev_line_actual_idx_1,
+                );
                 if !is_prev_excluded && !prev_is_blank && prefixes_match && should_require {
                     // Calculate precise character range for the entire list line that needs a blank line before it
                     let (start_line, start_col, end_line, end_col) =
@@ -313,11 +339,17 @@ impl MD032BlanksAroundLists {
                 // Only exclude code fence lines if they're indented (part of list content)
                 let is_next_excluded = structure.is_in_code_block(next_line_idx_1)
                     || structure.is_in_front_matter(next_line_idx_1)
-                    || (next_line_idx_0 < ctx.lines.len() && 
-                        ctx.lines[next_line_idx_0].in_code_block &&
-                        ctx.lines[next_line_idx_0].indent >= 2 &&
-                        (ctx.lines[next_line_idx_0].content.trim().starts_with("```") || 
-                         ctx.lines[next_line_idx_0].content.trim().starts_with("~~~")));
+                    || (next_line_idx_0 < ctx.lines.len()
+                        && ctx.lines[next_line_idx_0].in_code_block
+                        && ctx.lines[next_line_idx_0].indent >= 2
+                        && (ctx.lines[next_line_idx_0]
+                            .content
+                            .trim()
+                            .starts_with("```")
+                            || ctx.lines[next_line_idx_0]
+                                .content
+                                .trim()
+                                .starts_with("~~~")));
                 let next_prefix = BLOCKQUOTE_PREFIX_RE
                     .find(next_line_str)
                     .map_or(String::new(), |m| m.as_str().to_string());
@@ -339,7 +371,11 @@ impl MD032BlanksAroundLists {
                         rule_name: Some(self.name()),
                         message: "List should be followed by blank line".to_string(),
                         fix: Some(Fix {
-                            range: line_index.line_col_to_byte_range_with_length(end_line + 1, 1, 0),
+                            range: line_index.line_col_to_byte_range_with_length(
+                                end_line + 1,
+                                1,
+                                0,
+                            ),
                             replacement: format!("{}\n", prefix),
                         }),
                     });
@@ -441,7 +477,12 @@ impl Rule for MD032BlanksAroundLists {
                     .find(lines[prev_line_actual_idx_0])
                     .map_or(String::new(), |m| m.as_str().to_string());
 
-                let should_require = self.should_require_blank_line_before(lines[prev_line_actual_idx_0], ctx, &structure, prev_line_actual_idx_1);
+                let should_require = self.should_require_blank_line_before(
+                    lines[prev_line_actual_idx_0],
+                    ctx,
+                    &structure,
+                    prev_line_actual_idx_1,
+                );
                 if !is_prev_excluded
                     && !is_blank_in_context(lines[prev_line_actual_idx_0])
                     && prev_prefix == *prefix
@@ -460,11 +501,17 @@ impl Rule for MD032BlanksAroundLists {
                 // Only exclude code fence lines if they're indented (part of list content)
                 let is_line_after_excluded = structure.is_in_code_block(after_block_line_idx_1)
                     || structure.is_in_front_matter(after_block_line_idx_1)
-                    || (after_block_line_idx_0 < ctx.lines.len() && 
-                        ctx.lines[after_block_line_idx_0].in_code_block &&
-                        ctx.lines[after_block_line_idx_0].indent >= 2 &&
-                        (ctx.lines[after_block_line_idx_0].content.trim().starts_with("```") || 
-                         ctx.lines[after_block_line_idx_0].content.trim().starts_with("~~~")));
+                    || (after_block_line_idx_0 < ctx.lines.len()
+                        && ctx.lines[after_block_line_idx_0].in_code_block
+                        && ctx.lines[after_block_line_idx_0].indent >= 2
+                        && (ctx.lines[after_block_line_idx_0]
+                            .content
+                            .trim()
+                            .starts_with("```")
+                            || ctx.lines[after_block_line_idx_0]
+                                .content
+                                .trim()
+                                .starts_with("~~~")));
                 let after_prefix = BLOCKQUOTE_PREFIX_RE
                     .find(line_after_block_content_str)
                     .map_or(String::new(), |m| m.as_str().to_string());
@@ -573,7 +620,6 @@ impl DocumentStructureExtensions for MD032BlanksAroundLists {
     }
 }
 
-
 // Checks if a line is blank, considering blockquote context
 fn is_blank_in_context(line: &str) -> bool {
     // A line is blank if it's empty or contains only whitespace,
@@ -596,7 +642,8 @@ mod tests {
     fn lint(content: &str) -> Vec<LintWarning> {
         let rule = MD032BlanksAroundLists::default();
         let ctx = LintContext::new(content);
-        rule.check(&ctx).expect("Lint check failed")
+        rule.check(&ctx)
+            .expect("Lint check failed")
     }
 
     fn fix(content: &str) -> String {
@@ -630,7 +677,11 @@ mod tests {
             warnings[0].line, 2,
             "Warning should be on the last line of the list (line 2)"
         );
-        assert!(warnings[0].message.contains("followed by blank line"));
+        assert!(
+            warnings[0]
+                .message
+                .contains("followed by blank line")
+        );
 
         // Test that warning has fix
         check_warnings_have_fixes(content);
@@ -660,7 +711,11 @@ mod tests {
             warnings[0].line, 2,
             "Warning should be on the first line of the list (line 2)"
         );
-        assert!(warnings[0].message.contains("preceded by blank line"));
+        assert!(
+            warnings[0]
+                .message
+                .contains("preceded by blank line")
+        );
 
         // Test that warning has fix
         check_warnings_have_fixes(content);
@@ -687,9 +742,17 @@ mod tests {
             "Expected 2 warnings for list in middle without surrounding blank lines"
         );
         assert_eq!(warnings[0].line, 2, "First warning on line 2 (start)");
-        assert!(warnings[0].message.contains("preceded by blank line"));
+        assert!(
+            warnings[0]
+                .message
+                .contains("preceded by blank line")
+        );
         assert_eq!(warnings[1].line, 3, "Second warning on line 3 (end)");
-        assert!(warnings[1].message.contains("followed by blank line"));
+        assert!(
+            warnings[1]
+                .message
+                .contains("followed by blank line")
+        );
 
         // Test that warnings have fixes
         check_warnings_have_fixes(content);
@@ -735,9 +798,17 @@ mod tests {
         );
         if warnings.len() == 2 {
             assert_eq!(warnings[0].line, 2, "Warning 1 should be on line 2 (start)");
-            assert!(warnings[0].message.contains("preceded by blank line"));
+            assert!(
+                warnings[0]
+                    .message
+                    .contains("preceded by blank line")
+            );
             assert_eq!(warnings[1].line, 5, "Warning 2 should be on line 5 (end)");
-            assert!(warnings[1].message.contains("followed by blank line"));
+            assert!(
+                warnings[1]
+                    .message
+                    .contains("followed by blank line")
+            );
         }
 
         // Test that warnings have fixes
@@ -847,7 +918,11 @@ mod tests {
         );
         if !warnings.is_empty() {
             assert_eq!(warnings[0].line, 4); // Warning on last line of list
-            assert!(warnings[0].message.contains("followed by blank line"));
+            assert!(
+                warnings[0]
+                    .message
+                    .contains("followed by blank line")
+            );
         }
 
         // Test that warnings have fixes

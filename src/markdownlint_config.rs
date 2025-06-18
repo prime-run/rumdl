@@ -100,9 +100,11 @@ fn normalize_toml_table_keys(val: toml::Value) -> toml::Value {
             }
             toml::Value::Table(new_table)
         }
-        toml::Value::Array(arr) => {
-            toml::Value::Array(arr.into_iter().map(normalize_toml_table_keys).collect())
-        }
+        toml::Value::Array(arr) => toml::Value::Array(
+            arr.into_iter()
+                .map(normalize_toml_table_keys)
+                .collect(),
+        ),
         other => other,
     }
 }
@@ -134,12 +136,13 @@ impl MarkdownlintConfig {
                                 .and_modify(|sv| {
                                     sv.value = v.clone();
                                     sv.source = ConfigSource::Markdownlint;
-                                    sv.overrides.push(crate::config::ConfigOverride {
-                                        value: v.clone(),
-                                        source: ConfigSource::Markdownlint,
-                                        file: file.clone(),
-                                        line: None,
-                                    });
+                                    sv.overrides
+                                        .push(crate::config::ConfigOverride {
+                                            value: v.clone(),
+                                            source: ConfigSource::Markdownlint,
+                                            file: file.clone(),
+                                            line: None,
+                                        });
                                 })
                                 .or_insert_with(|| SourcedValue {
                                     value: v.clone(),
@@ -159,12 +162,13 @@ impl MarkdownlintConfig {
                             .and_modify(|sv| {
                                 sv.value = tv.clone();
                                 sv.source = ConfigSource::Markdownlint;
-                                sv.overrides.push(crate::config::ConfigOverride {
-                                    value: tv.clone(),
-                                    source: ConfigSource::Markdownlint,
-                                    file: file.clone(),
-                                    line: None,
-                                });
+                                sv.overrides
+                                    .push(crate::config::ConfigOverride {
+                                        value: tv.clone(),
+                                        source: ConfigSource::Markdownlint,
+                                        file: file.clone(),
+                                        line: None,
+                                    });
                             })
                             .or_insert_with(|| SourcedValue {
                                 value: tv.clone(),
@@ -178,7 +182,10 @@ impl MarkdownlintConfig {
                             });
                     }
                 } else {
-                    log::error!("Could not convert value for rule key {:?} to rumdl's internal config format. This likely means the configuration value is invalid or not supported for this rule. Please check your markdownlint config.", key);
+                    log::error!(
+                        "Could not convert value for rule key {:?} to rumdl's internal config format. This likely means the configuration value is invalid or not supported for this rule. Please check your markdownlint config.",
+                        key
+                    );
                     std::process::exit(1);
                 }
             }
@@ -200,16 +207,19 @@ impl MarkdownlintConfig {
             // Special handling for line-length as a global setting
             if key.eq_ignore_ascii_case("line-length") || key.eq_ignore_ascii_case("line_length") {
                 if let Some(line_length) = value.as_u64() {
-                    fragment.global.line_length.push_override(
-                        line_length,
-                        crate::config::ConfigSource::Markdownlint,
-                        file.clone(),
-                        None,
-                    );
+                    fragment
+                        .global
+                        .line_length
+                        .push_override(
+                            line_length,
+                            crate::config::ConfigSource::Markdownlint,
+                            file.clone(),
+                            None,
+                        );
                 }
                 continue;
             }
-            
+
             let mapped = markdownlint_to_rumdl_rule_key(key);
             if let Some(rumdl_key) = mapped {
                 let norm_rule_key = rumdl_key.to_ascii_uppercase();
@@ -237,21 +247,23 @@ impl MarkdownlintConfig {
                 let toml_value: Option<toml::Value> =
                     serde_yaml::from_value::<toml::Value>(value.clone()).ok();
                 let toml_value = toml_value.map(normalize_toml_table_keys);
-                let rule_config = fragment.rules.entry(norm_rule_key.clone()).or_default();
+                let rule_config = fragment
+                    .rules
+                    .entry(norm_rule_key.clone())
+                    .or_default();
                 if let Some(tv) = toml_value {
                     if let toml::Value::Table(table) = tv {
                         for (rk, rv) in table {
                             let norm_rk = crate::config::normalize_key(&rk);
-                            let sv =
-                                rule_config
-                                    .values
-                                    .entry(norm_rk.clone())
-                                    .or_insert_with(|| {
-                                        crate::config::SourcedValue::new(
-                                            rv.clone(),
-                                            crate::config::ConfigSource::Markdownlint,
-                                        )
-                                    });
+                            let sv = rule_config
+                                .values
+                                .entry(norm_rk.clone())
+                                .or_insert_with(|| {
+                                    crate::config::SourcedValue::new(
+                                        rv.clone(),
+                                        crate::config::ConfigSource::Markdownlint,
+                                    )
+                                });
                             sv.push_override(
                                 rv,
                                 crate::config::ConfigSource::Markdownlint,
@@ -266,12 +278,13 @@ impl MarkdownlintConfig {
                             .and_modify(|sv| {
                                 sv.value = tv.clone();
                                 sv.source = crate::config::ConfigSource::Markdownlint;
-                                sv.overrides.push(crate::config::ConfigOverride {
-                                    value: tv.clone(),
-                                    source: crate::config::ConfigSource::Markdownlint,
-                                    file: file.clone(),
-                                    line: None,
-                                });
+                                sv.overrides
+                                    .push(crate::config::ConfigOverride {
+                                        value: tv.clone(),
+                                        source: crate::config::ConfigSource::Markdownlint,
+                                        file: file.clone(),
+                                        line: None,
+                                    });
                             })
                             .or_insert_with(|| crate::config::SourcedValue {
                                 value: tv.clone(),

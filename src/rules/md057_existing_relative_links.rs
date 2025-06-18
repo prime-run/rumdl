@@ -75,7 +75,6 @@ pub struct MD057ExistingRelativeLinks {
     config: MD057Config,
 }
 
-
 impl MD057ExistingRelativeLinks {
     /// Create a new instance with default settings
     pub fn new() -> Self {
@@ -100,7 +99,7 @@ impl MD057ExistingRelativeLinks {
         self.config.skip_media_files = skip_media_files;
         self
     }
-    
+
     pub fn from_config_struct(config: MD057Config) -> Self {
         Self {
             base_path: Arc::new(Mutex::new(None)),
@@ -214,13 +213,15 @@ impl MD057ExistingRelativeLinks {
     #[allow(dead_code)]
     fn extract_url_from_link<'a>(&self, link_text: &'a str) -> Option<(&'a str, usize)> {
         // Find the URL part using regex
-        URL_EXTRACT_REGEX.captures(link_text).and_then(move |caps| {
-            caps.get(1).map(|url_match| {
-                let url = url_match.as_str().trim();
-                let position = url_match.start();
-                (url, position)
+        URL_EXTRACT_REGEX
+            .captures(link_text)
+            .and_then(move |caps| {
+                caps.get(1).map(|url_match| {
+                    let url = url_match.as_str().trim();
+                    let position = url_match.start();
+                    (url, position)
+                })
             })
-        })
     }
 }
 
@@ -540,11 +541,17 @@ mod tests {
 
         // Test with document structure
         let structure = DocumentStructure::new(content);
-        let result_with_structure = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result_with_structure = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
 
         // Results should be the same
         assert_eq!(result.len(), result_with_structure.len());
-        assert!(result_with_structure[0].message.contains("missing.md"));
+        assert!(
+            result_with_structure[0]
+                .message
+                .contains("missing.md")
+        );
     }
 
     #[test]
@@ -627,7 +634,9 @@ mod tests {
             "Should have one warning when skip_media_files is false"
         );
         assert!(
-            result_all[0].message.contains("image.jpg"),
+            result_all[0]
+                .message
+                .contains("image.jpg"),
             "Warning should mention image.jpg"
         );
     }
@@ -648,11 +657,17 @@ mod tests {
         let structure = DocumentStructure::new(content);
 
         let ctx = crate::lint_context::LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
 
         // Should only find the real link, not the one in code
         assert_eq!(result.len(), 1, "Should only flag the real link");
-        assert!(result[0].message.contains("nonexistent.md"));
+        assert!(
+            result[0]
+                .message
+                .contains("nonexistent.md")
+        );
     }
 
     #[test]
@@ -693,9 +708,9 @@ Some more text with `inline code [Link](yet-another-missing.md) embedded`.
             "Should not warn about link in code span"
         );
         assert!(
-            !result
-                .iter()
-                .any(|w| w.message.contains("yet-another-missing.md")),
+            !result.iter().any(|w| w
+                .message
+                .contains("yet-another-missing.md")),
             "Should not warn about link in inline code"
         );
     }

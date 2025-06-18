@@ -43,7 +43,8 @@ impl Profiler {
     pub fn start_timer(&mut self, section: &str) {
         if PROFILING_ENABLED {
             let section_name = section.to_string();
-            self.active_timers.insert(section_name, Instant::now());
+            self.active_timers
+                .insert(section_name, Instant::now());
         }
     }
 
@@ -73,7 +74,7 @@ impl Profiler {
 
         // Sort measurements by total time (descending)
         let mut sorted_measurements: Vec<_> = self.measurements.iter().collect();
-        sorted_measurements.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
+        sorted_measurements.sort_by(|a, b| b.1.0.cmp(&a.1.0));
 
         // Calculate total time across all sections
         let total_time: Duration = sorted_measurements

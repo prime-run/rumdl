@@ -1,4 +1,3 @@
-
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, Severity};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -73,7 +72,7 @@ impl Rule for MD045NoAltText {
 
     fn fix(&self, ctx: &crate::lint_context::LintContext) -> Result<String, LintError> {
         let content = ctx.content;
-        
+
         let mut result = String::new();
         let mut last_end = 0;
 
@@ -81,10 +80,10 @@ impl Rule for MD045NoAltText {
             let full_match = caps.get(0).unwrap();
             let alt_text = caps.get(1).map_or("", |m| m.as_str());
             let url_part = caps.get(2).map_or("", |m| m.as_str());
-            
+
             // Add text before this match
             result.push_str(&content[last_end..full_match.start()]);
-            
+
             // Check if this image is inside a code block
             if ctx.is_in_code_block_or_span(full_match.start()) {
                 // Keep the original image if it's in a code block
@@ -96,10 +95,10 @@ impl Rule for MD045NoAltText {
                 // Keep the original if alt text is not empty
                 result.push_str(&caps[0]);
             }
-            
+
             last_end = full_match.end();
         }
-        
+
         // Add any remaining text
         result.push_str(&content[last_end..]);
 

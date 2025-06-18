@@ -133,14 +133,22 @@ impl BlockquoteUtils {
 
         if Self::has_no_space_after_marker(line) {
             if let Some(captures) = BLOCKQUOTE_NO_SPACE.captures(line) {
-                let indent = captures.get(1).map_or("", |m| m.as_str());
-                let content = captures.get(2).map_or("", |m| m.as_str());
+                let indent = captures
+                    .get(1)
+                    .map_or("", |m| m.as_str());
+                let content = captures
+                    .get(2)
+                    .map_or("", |m| m.as_str());
                 return format!("{}> {}", indent, content);
             }
         } else if Self::has_multiple_spaces_after_marker(line) {
             if let Some(captures) = BLOCKQUOTE_MULTIPLE_SPACES.captures(line) {
-                let indent = captures.get(1).map_or("", |m| m.as_str());
-                let content = captures.get(3).map_or("", |m| m.as_str());
+                let indent = captures
+                    .get(1)
+                    .map_or("", |m| m.as_str());
+                let content = captures
+                    .get(3)
+                    .map_or("", |m| m.as_str());
                 return format!("{}> {}", indent, content);
             }
         }

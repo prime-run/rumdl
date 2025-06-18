@@ -27,7 +27,8 @@ impl StringInterner {
             interned.clone()
         } else {
             let arc_str: Arc<str> = Arc::from(s);
-            self.strings.insert(s.to_string(), arc_str.clone());
+            self.strings
+                .insert(s.to_string(), arc_str.clone());
             arc_str
         }
     }

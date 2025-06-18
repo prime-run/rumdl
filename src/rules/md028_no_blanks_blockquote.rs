@@ -3,7 +3,7 @@
 /// See [docs/md028.md](../../docs/md028.md) for full documentation, configuration, and examples.
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
 use crate::utils::document_structure::{DocumentStructure, DocumentStructureExtensions};
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 
 #[derive(Clone)]
 pub struct MD028NoBlanksBlockquote;
@@ -55,7 +55,7 @@ impl Rule for MD028NoBlanksBlockquote {
         // Process all lines using cached blockquote information
         for (line_idx, line_info) in ctx.lines.iter().enumerate() {
             let line_num = line_idx + 1;
-            
+
             // Skip lines in code blocks
             if line_info.in_code_block {
                 continue;
@@ -77,8 +77,15 @@ impl Rule for MD028NoBlanksBlockquote {
                         end_column: end_col,
                         severity: Severity::Warning,
                         fix: Some(Fix {
-                            range: line_index.line_col_to_byte_range_with_length(line_num, 1, line_info.content.len()),
-                            replacement: Self::get_replacement(&blockquote.indent, blockquote.nesting_level),
+                            range: line_index.line_col_to_byte_range_with_length(
+                                line_num,
+                                1,
+                                line_info.content.len(),
+                            ),
+                            replacement: Self::get_replacement(
+                                &blockquote.indent,
+                                blockquote.nesting_level,
+                            ),
                         }),
                     });
                 }
@@ -100,11 +107,12 @@ impl Rule for MD028NoBlanksBlockquote {
 
     fn fix(&self, ctx: &crate::lint_context::LintContext) -> Result<String, LintError> {
         let mut result = Vec::with_capacity(ctx.lines.len());
-        
+
         for line_info in &ctx.lines {
             if let Some(blockquote) = &line_info.blockquote {
                 if blockquote.needs_md028_fix {
-                    let replacement = Self::get_replacement(&blockquote.indent, blockquote.nesting_level);
+                    let replacement =
+                        Self::get_replacement(&blockquote.indent, blockquote.nesting_level);
                     result.push(replacement);
                 } else {
                     result.push(line_info.content.clone());
@@ -113,7 +121,7 @@ impl Rule for MD028NoBlanksBlockquote {
                 result.push(line_info.content.clone());
             }
         }
-        
+
         Ok(result.join("\n")
             + if ctx.content.ends_with('\n') {
                 "\n"

@@ -368,7 +368,10 @@ pub fn compute_code_spans(content: &str) -> Vec<(usize, usize)> {
                     // If we found a matching sequence, record the span
                     if closing_count == backtick_count {
                         // Convert from character indices to byte indices
-                        let start_byte = chars[..start_idx].iter().map(|c| c.len_utf8()).sum();
+                        let start_byte = chars[..start_idx]
+                            .iter()
+                            .map(|c| c.len_utf8())
+                            .sum();
                         let end_byte = chars[..potential_end + closing_count]
                             .iter()
                             .map(|c| c.len_utf8())

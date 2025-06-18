@@ -264,7 +264,9 @@ impl PerformanceBenchmark {
 
         // Measure execution time
         let start = Instant::now();
-        let warnings = rule.check(&ctx).unwrap_or_else(|_| vec![]);
+        let warnings = rule
+            .check(&ctx)
+            .unwrap_or_else(|_| vec![]);
         let execution_time = start.elapsed();
 
         RulePerformanceResult {
@@ -360,7 +362,10 @@ impl PerformanceBenchmark {
             );
             println!(
                 "   Total execution time: {:.3}ms",
-                result.total_execution_time.as_secs_f64() * 1000.0
+                result
+                    .total_execution_time
+                    .as_secs_f64()
+                    * 1000.0
             );
             println!("   Total warnings found: {}", result.total_warnings);
             println!("   Performance metrics:");
@@ -376,7 +381,9 @@ impl PerformanceBenchmark {
             println!("   Top 10 slowest rules:");
             for (i, rule_result) in sorted_rules.iter().take(10).enumerate() {
                 let percentage = (rule_result.execution_time.as_secs_f64()
-                    / result.total_execution_time.as_secs_f64())
+                    / result
+                        .total_execution_time
+                        .as_secs_f64())
                     * 100.0;
                 println!(
                     "     {}. {} - {:.3}ms ({:.1}%) - {} warnings",

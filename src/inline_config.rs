@@ -1,5 +1,5 @@
 //! Inline configuration comment handling for markdownlint compatibility
-//! 
+//!
 //! Supports:
 //! - `<!-- markdownlint-disable -->` - Disable all rules from this point
 //! - `<!-- markdownlint-enable -->` - Re-enable all rules from this point
@@ -9,7 +9,7 @@
 //! - `<!-- markdownlint-disable-next-line MD001 -->` - Disable rules for next line
 //! - `<!-- markdownlint-capture -->` - Capture current configuration state
 //! - `<!-- markdownlint-restore -->` - Restore captured configuration state
-//! 
+//!
 //! Also supports rumdl-specific syntax with same semantics.
 
 use std::collections::{HashMap, HashSet};
@@ -34,24 +34,29 @@ impl InlineConfig {
     pub fn from_content(content: &str) -> Self {
         let mut config = Self::new();
         let lines: Vec<&str> = content.lines().collect();
-        
+
         // Track current state of disabled rules
         let mut currently_disabled = HashSet::new();
         let mut capture_stack: Vec<HashSet<String>> = Vec::new();
 
         for (idx, line) in lines.iter().enumerate() {
             let line_num = idx + 1; // 1-indexed
-            
+
             // Store the current state for this line BEFORE processing comments
             // This way, comments on a line don't affect that same line
-            config.disabled_at_line.insert(line_num, currently_disabled.clone());
+            config
+                .disabled_at_line
+                .insert(line_num, currently_disabled.clone());
 
             // Process comments in order of specificity to avoid conflicts
-            
+
             // Check for disable-next-line first (more specific than disable)
             if let Some(rules) = parse_disable_next_line_comment(line) {
                 let next_line = line_num + 1;
-                let line_rules = config.line_disabled_rules.entry(next_line).or_insert_with(HashSet::new);
+                let line_rules = config
+                    .line_disabled_rules
+                    .entry(next_line)
+                    .or_insert_with(HashSet::new);
                 if rules.is_empty() {
                     // Disable all rules for next line
                     line_rules.insert("*".to_string());
@@ -63,7 +68,10 @@ impl InlineConfig {
             }
             // Check for disable-line (more specific than disable)
             else if let Some(rules) = parse_disable_line_comment(line) {
-                let line_rules = config.line_disabled_rules.entry(line_num).or_insert_with(HashSet::new);
+                let line_rules = config
+                    .line_disabled_rules
+                    .entry(line_num)
+                    .or_insert_with(HashSet::new);
                 if rules.is_empty() {
                     // Disable all rules for current line
                     line_rules.insert("*".to_string());
@@ -115,7 +123,10 @@ impl InlineConfig {
     /// Check if a rule is disabled at a specific line
     pub fn is_rule_disabled(&self, rule_name: &str, line_number: usize) -> bool {
         // Check line-specific disables first (disable-line, disable-next-line)
-        if let Some(line_rules) = self.line_disabled_rules.get(&line_number) {
+        if let Some(line_rules) = self
+            .line_disabled_rules
+            .get(&line_number)
+        {
             if line_rules.contains("*") || line_rules.contains(rule_name) {
                 return true;
             }
@@ -132,16 +143,19 @@ impl InlineConfig {
     /// Get all disabled rules at a specific line
     pub fn get_disabled_rules(&self, line_number: usize) -> HashSet<String> {
         let mut disabled = HashSet::new();
-        
+
         // Add persistent disables
         if let Some(disabled_set) = self.disabled_at_line.get(&line_number) {
             for rule in disabled_set {
                 disabled.insert(rule.clone());
             }
         }
-        
+
         // Add line-specific disables
-        if let Some(line_rules) = self.line_disabled_rules.get(&line_number) {
+        if let Some(line_rules) = self
+            .line_disabled_rules
+            .get(&line_number)
+        {
             for rule in line_rules {
                 disabled.insert(rule.clone());
             }
@@ -154,12 +168,18 @@ impl InlineConfig {
 /// Parse a disable comment and return the list of rules (empty vec means all rules)
 pub fn parse_disable_comment(line: &str) -> Option<Vec<&str>> {
     // Check for both rumdl-disable and markdownlint-disable
-    for prefix in &["<!-- rumdl-disable", "<!-- markdownlint-disable"] {
+    for prefix in &[
+        "<!-- rumdl-disable",
+        "<!-- markdownlint-disable",
+    ] {
         if let Some(start) = line.find(prefix) {
             let after_prefix = &line[start + prefix.len()..];
 
             // Global disable: <!-- markdownlint-disable -->
-            if after_prefix.trim_start().starts_with("-->") {
+            if after_prefix
+                .trim_start()
+                .starts_with("-->")
+            {
                 return Some(Vec::new()); // Empty vec means all rules
             }
 
@@ -180,12 +200,18 @@ pub fn parse_disable_comment(line: &str) -> Option<Vec<&str>> {
 /// Parse an enable comment and return the list of rules (empty vec means all rules)
 pub fn parse_enable_comment(line: &str) -> Option<Vec<&str>> {
     // Check for both rumdl-enable and markdownlint-enable
-    for prefix in &["<!-- rumdl-enable", "<!-- markdownlint-enable"] {
+    for prefix in &[
+        "<!-- rumdl-enable",
+        "<!-- markdownlint-enable",
+    ] {
         if let Some(start) = line.find(prefix) {
             let after_prefix = &line[start + prefix.len()..];
 
             // Global enable: <!-- markdownlint-enable -->
-            if after_prefix.trim_start().starts_with("-->") {
+            if after_prefix
+                .trim_start()
+                .starts_with("-->")
+            {
                 return Some(Vec::new()); // Empty vec means all rules
             }
 
@@ -206,12 +232,18 @@ pub fn parse_enable_comment(line: &str) -> Option<Vec<&str>> {
 /// Parse a disable-line comment
 pub fn parse_disable_line_comment(line: &str) -> Option<Vec<&str>> {
     // Check for both rumdl and markdownlint variants
-    for prefix in &["<!-- rumdl-disable-line", "<!-- markdownlint-disable-line"] {
+    for prefix in &[
+        "<!-- rumdl-disable-line",
+        "<!-- markdownlint-disable-line",
+    ] {
         if let Some(start) = line.find(prefix) {
             let after_prefix = &line[start + prefix.len()..];
 
             // Global disable-line: <!-- markdownlint-disable-line -->
-            if after_prefix.trim_start().starts_with("-->") {
+            if after_prefix
+                .trim_start()
+                .starts_with("-->")
+            {
                 return Some(Vec::new()); // Empty vec means all rules
             }
 
@@ -232,12 +264,18 @@ pub fn parse_disable_line_comment(line: &str) -> Option<Vec<&str>> {
 /// Parse a disable-next-line comment
 pub fn parse_disable_next_line_comment(line: &str) -> Option<Vec<&str>> {
     // Check for both rumdl and markdownlint variants
-    for prefix in &["<!-- rumdl-disable-next-line", "<!-- markdownlint-disable-next-line"] {
+    for prefix in &[
+        "<!-- rumdl-disable-next-line",
+        "<!-- markdownlint-disable-next-line",
+    ] {
         if let Some(start) = line.find(prefix) {
             let after_prefix = &line[start + prefix.len()..];
 
             // Global disable-next-line: <!-- markdownlint-disable-next-line -->
-            if after_prefix.trim_start().starts_with("-->") {
+            if after_prefix
+                .trim_start()
+                .starts_with("-->")
+            {
                 return Some(Vec::new()); // Empty vec means all rules
             }
 
@@ -272,8 +310,14 @@ mod tests {
     #[test]
     fn test_parse_disable_comment() {
         // Global disable
-        assert_eq!(parse_disable_comment("<!-- markdownlint-disable -->"), Some(vec![]));
-        assert_eq!(parse_disable_comment("<!-- rumdl-disable -->"), Some(vec![]));
+        assert_eq!(
+            parse_disable_comment("<!-- markdownlint-disable -->"),
+            Some(vec![])
+        );
+        assert_eq!(
+            parse_disable_comment("<!-- rumdl-disable -->"),
+            Some(vec![])
+        );
 
         // Specific rules
         assert_eq!(
@@ -288,7 +332,10 @@ mod tests {
     #[test]
     fn test_parse_disable_line_comment() {
         // Global disable-line
-        assert_eq!(parse_disable_line_comment("<!-- markdownlint-disable-line -->"), Some(vec![]));
+        assert_eq!(
+            parse_disable_line_comment("<!-- markdownlint-disable-line -->"),
+            Some(vec![])
+        );
 
         // Specific rules
         assert_eq!(
@@ -324,10 +371,10 @@ Some text <!-- markdownlint-disable-line MD013 -->
 "#;
 
         let config = InlineConfig::from_content(content);
-        
+
         // Line 4 should have MD013 disabled (line after disable comment on line 3)
         assert!(config.is_rule_disabled("MD013", 4));
-        
+
         // Line 7 should have MD013 enabled (line after enable comment on line 6)
         assert!(!config.is_rule_disabled("MD013", 7));
 

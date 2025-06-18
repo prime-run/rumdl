@@ -54,26 +54,34 @@ impl CodeBlockUtils {
         // (unless they're at the start of the document or after a block-level element)
         let mut in_indented_block = false;
         let mut indented_block_start = 0;
-        
+
         for (line_idx, line) in lines.iter().enumerate() {
             let line_start = if line_idx < line_positions.len() {
                 line_positions[line_idx]
             } else {
                 0
             };
-            
+
             // Check if this line is indented code
             let is_indented = line.starts_with("    ") || line.starts_with("\t");
-            
+
             // Check if this looks like a list item (has list marker after indentation)
             let trimmed = line.trim_start();
-            let is_list_item = trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("+ ") ||
-                               trimmed.chars().next().map_or(false, |c| c.is_numeric()) && 
-                               trimmed.chars().nth(1).map_or(false, |c| c == '.' || c == ')');
-            
-            // Check if previous line was blank 
+            let is_list_item = trimmed.starts_with("- ")
+                || trimmed.starts_with("* ")
+                || trimmed.starts_with("+ ")
+                || trimmed
+                    .chars()
+                    .next()
+                    .map_or(false, |c| c.is_numeric())
+                    && trimmed
+                        .chars()
+                        .nth(1)
+                        .map_or(false, |c| c == '.' || c == ')');
+
+            // Check if previous line was blank
             let prev_blank = line_idx > 0 && lines[line_idx - 1].trim().is_empty();
-            
+
             if is_indented && !line.trim().is_empty() && !is_list_item {
                 if !in_indented_block {
                     // Only start an indented code block if preceded by a blank line
@@ -94,7 +102,7 @@ impl CodeBlockUtils {
                 in_indented_block = false;
             }
         }
-        
+
         // Handle indented block that goes to end of file
         if in_indented_block {
             blocks.push((indented_block_start, content.len()));
@@ -126,6 +134,8 @@ impl CodeBlockUtils {
 
     /// Check if a position is within a code block or code span
     pub fn is_in_code_block_or_span(blocks: &[(usize, usize)], pos: usize) -> bool {
-        blocks.iter().any(|&(start, end)| pos >= start && pos < end)
+        blocks
+            .iter()
+            .any(|&(start, end)| pos >= start && pos < end)
     }
 }

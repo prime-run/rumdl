@@ -2,9 +2,9 @@
 ///
 /// See [docs/md007.md](../../docs/md007.md) for full documentation, configuration, and examples.
 use crate::rule::{LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
+use crate::rule_config_serde::RuleConfig;
 use crate::utils::document_structure::{DocumentStructure, DocumentStructureExtensions};
 use crate::utils::element_cache::{ElementCache, ListMarkerType};
-use crate::rule_config_serde::RuleConfig;
 use lazy_static::lazy_static;
 use regex::Regex;
 use toml;
@@ -31,7 +31,7 @@ impl MD007ULIndent {
             config: MD007Config { indent },
         }
     }
-    
+
     pub fn from_config_struct(config: MD007Config) -> Self {
         Self { config }
     }
@@ -116,10 +116,15 @@ impl Rule for MD007ULIndent {
 
                                 // Warning will cover the indentation area that needs to be fixed
                                 let start_col = item.blockquote_prefix.len() + 1; // Start of indentation
-                                let end_col = item.blockquote_prefix.len() + item.indent_str.len() + 1; // End of actual indentation string
+                                let end_col =
+                                    item.blockquote_prefix.len() + item.indent_str.len() + 1; // End of actual indentation string
 
-                                let start_byte = line_index.line_col_to_byte_range(item.line_number, start_col).start;
-                                let end_byte = line_index.line_col_to_byte_range(item.line_number, end_col).start;
+                                let start_byte = line_index
+                                    .line_col_to_byte_range(item.line_number, start_col)
+                                    .start;
+                                let end_byte = line_index
+                                    .line_col_to_byte_range(item.line_number, end_col)
+                                    .start;
 
                                 // Replacement should be just the correct indentation
                                 let replacement = correct_indent;
@@ -174,7 +179,10 @@ impl Rule for MD007ULIndent {
 
         for item in element_cache.get_list_items() {
             // Only process unordered list items that are in our structure
-            if !doc_structure.list_lines.contains(&item.line_number) {
+            if !doc_structure
+                .list_lines
+                .contains(&item.line_number)
+            {
                 continue;
             }
 
@@ -204,10 +212,15 @@ impl Rule for MD007ULIndent {
 
                                 // Warning will cover the indentation area that needs to be fixed
                                 let start_col = item.blockquote_prefix.len() + 1; // Start of indentation
-                                let end_col = item.blockquote_prefix.len() + item.indent_str.len() + 1; // End of actual indentation string
+                                let end_col =
+                                    item.blockquote_prefix.len() + item.indent_str.len() + 1; // End of actual indentation string
 
-                                let start_byte = line_index.line_col_to_byte_range(item.line_number, start_col).start;
-                                let end_byte = line_index.line_col_to_byte_range(item.line_number, end_col).start;
+                                let start_byte = line_index
+                                    .line_col_to_byte_range(item.line_number, start_col)
+                                    .start;
+                                let end_byte = line_index
+                                    .line_col_to_byte_range(item.line_number, end_col)
+                                    .start;
 
                                 // Replacement should be just the correct indentation
                                 let replacement = correct_indent;
@@ -299,10 +312,13 @@ impl Rule for MD007ULIndent {
         let default_config = MD007Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD007Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD007Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }

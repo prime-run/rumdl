@@ -2,7 +2,7 @@
 ///
 /// See [docs/md023.md](../../docs/md023.md) for full documentation, configuration, and examples.
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
-use crate::utils::range_utils::{calculate_single_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_single_line_range};
 
 #[derive(Clone)]
 pub struct MD023HeadingStartLeft;
@@ -28,13 +28,16 @@ impl Rule for MD023HeadingStartLeft {
         // Process all headings using cached heading information
         for (line_num, line_info) in ctx.lines.iter().enumerate() {
             if let Some(heading) = &line_info.heading {
-                
                 let indentation = line_info.indent;
 
                 // If the heading is indented, add a warning
                 if indentation > 0 {
-                    let is_setext = matches!(heading.style, crate::lint_context::HeadingStyle::Setext1 | crate::lint_context::HeadingStyle::Setext2);
-                    
+                    let is_setext = matches!(
+                        heading.style,
+                        crate::lint_context::HeadingStyle::Setext1
+                            | crate::lint_context::HeadingStyle::Setext2
+                    );
+
                     if is_setext {
                         // For Setext headings, we need to fix both the heading text and underline
                         let underline_line = line_num + 1;
@@ -60,7 +63,11 @@ impl Rule for MD023HeadingStartLeft {
                                 indentation
                             ),
                             fix: Some(Fix {
-                                range: line_index.line_col_to_byte_range_with_length(line_num + 1, start_col, indentation),
+                                range: line_index.line_col_to_byte_range_with_length(
+                                    line_num + 1,
+                                    start_col,
+                                    indentation,
+                                ),
                                 replacement: String::new(), // Remove the indentation
                             }),
                         });
@@ -91,7 +98,11 @@ impl Rule for MD023HeadingStartLeft {
                                     message: "Setext heading underline should not be indented"
                                         .to_string(),
                                     fix: Some(Fix {
-                                        range: line_index.line_col_to_byte_range_with_length(underline_line + 1, underline_start_col, underline_indentation),
+                                        range: line_index.line_col_to_byte_range_with_length(
+                                            underline_line + 1,
+                                            underline_start_col,
+                                            underline_indentation,
+                                        ),
                                         replacement: String::new(), // Remove the indentation
                                     }),
                                 });
@@ -120,7 +131,11 @@ impl Rule for MD023HeadingStartLeft {
                                 indentation
                             ),
                             fix: Some(Fix {
-                                range: line_index.line_col_to_byte_range_with_length(line_num + 1, atx_start_col, indentation),
+                                range: line_index.line_col_to_byte_range_with_length(
+                                    line_num + 1,
+                                    atx_start_col,
+                                    indentation,
+                                ),
                                 replacement: String::new(), // Remove the indentation
                             }),
                         });
@@ -141,11 +156,15 @@ impl Rule for MD023HeadingStartLeft {
                 skip_next = false;
                 continue;
             }
-            
+
             // Check if this line is a heading
             if let Some(heading) = &line_info.heading {
                 let indentation = line_info.indent;
-                let is_setext = matches!(heading.style, crate::lint_context::HeadingStyle::Setext1 | crate::lint_context::HeadingStyle::Setext2);
+                let is_setext = matches!(
+                    heading.style,
+                    crate::lint_context::HeadingStyle::Setext1
+                        | crate::lint_context::HeadingStyle::Setext2
+                );
 
                 if indentation > 0 {
                     // This heading needs to be fixed
@@ -154,12 +173,22 @@ impl Rule for MD023HeadingStartLeft {
                         fixed_lines.push(line_info.content.trim().to_string());
                         // Then add the underline without indentation
                         if i + 1 < ctx.lines.len() {
-                            fixed_lines.push(ctx.lines[i + 1].content.trim().to_string());
+                            fixed_lines.push(
+                                ctx.lines[i + 1]
+                                    .content
+                                    .trim()
+                                    .to_string(),
+                            );
                             skip_next = true;
                         }
                     } else {
                         // For ATX headings, simply trim the indentation
-                        fixed_lines.push(line_info.content.trim_start().to_string());
+                        fixed_lines.push(
+                            line_info
+                                .content
+                                .trim_start()
+                                .to_string(),
+                        );
                     }
                 } else {
                     // This heading is already at the beginning of the line
@@ -183,7 +212,6 @@ impl Rule for MD023HeadingStartLeft {
         }
     }
 
-
     /// Get the category of this rule for selective processing
     fn category(&self) -> RuleCategory {
         RuleCategory::Heading
@@ -191,7 +219,9 @@ impl Rule for MD023HeadingStartLeft {
 
     /// Check if this rule should be skipped
     fn should_skip(&self, ctx: &crate::lint_context::LintContext) -> bool {
-        ctx.lines.iter().all(|line| line.heading.is_none())
+        ctx.lines
+            .iter()
+            .all(|line| line.heading.is_none())
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -209,7 +239,6 @@ impl Rule for MD023HeadingStartLeft {
         Box::new(MD023HeadingStartLeft)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

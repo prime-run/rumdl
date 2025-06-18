@@ -3,7 +3,7 @@
 //!
 //! See [docs/md005.md](../../docs/md005.md) for full documentation, configuration, and examples.
 
-use crate::utils::range_utils::{calculate_match_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_match_range};
 
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
 use crate::utils::document_structure::DocumentStructure;
@@ -27,7 +27,11 @@ impl MD005ListIndent {
 
     // Determine if a line is a continuation of a list item
     #[inline]
-    fn is_list_continuation(prev_list_indent: usize, current_line: &str, current_is_list: bool) -> bool {
+    fn is_list_continuation(
+        prev_list_indent: usize,
+        current_line: &str,
+        current_is_list: bool,
+    ) -> bool {
         // Early return for empty lines
         if current_line.trim().is_empty() {
             return false;
@@ -50,7 +54,10 @@ impl MD005ListIndent {
         }
 
         // Quick check to avoid processing files without lists
-        let has_lists = ctx.lines.iter().any(|line| line.list_item.is_some());
+        let has_lists = ctx
+            .lines
+            .iter()
+            .any(|line| line.list_item.is_some());
         if !has_lists {
             return Ok(Vec::new());
         }
@@ -74,13 +81,15 @@ impl MD005ListIndent {
             // Check if this is a list item using cached info
             if let Some(list_item) = &line_info.list_item {
                 let indent = list_item.marker_column;
-                
+
                 // Determine if this starts a new list
                 let is_new_list = !in_list
                     || indent == 0
-                    || (list_items.last().map_or(false, |(_, prev_indent, _)| {
-                        prev_indent > &0 && indent < prev_indent / 2
-                    }));
+                    || (list_items
+                        .last()
+                        .map_or(false, |(_, prev_indent, _)| {
+                            prev_indent > &0 && indent < prev_indent / 2
+                        }));
 
                 if is_new_list {
                     current_list_id += 1;
@@ -88,7 +97,9 @@ impl MD005ListIndent {
                 }
 
                 // Determine level for this item
-                let level_map = list_level_maps.entry(current_list_id).or_default();
+                let level_map = list_level_maps
+                    .entry(current_list_id)
+                    .or_default();
                 let level = if level_map.is_empty() {
                     level_map.insert(indent, 1);
                     level_indents.insert((current_list_id, 1), indent);
@@ -103,7 +114,9 @@ impl MD005ListIndent {
                         let mut parent_indent = 0;
 
                         for (&prev_indent, &prev_level) in level_map.iter() {
-                            if prev_indent < indent && (prev_level >= level || prev_indent > parent_indent) {
+                            if prev_indent < indent
+                                && (prev_level >= level || prev_indent > parent_indent)
+                            {
                                 level = prev_level + 1;
                                 parent_indent = prev_indent;
                             }
@@ -137,12 +150,18 @@ impl MD005ListIndent {
                     // Fix range should span from start of line to end of indentation
                     let fix_range = if indent > 0 {
                         // Replace the current indentation with expected indentation
-                        let start_byte = line_index.line_col_to_byte_range(line_num + 1, 1).start;
-                        let end_byte = line_index.line_col_to_byte_range(line_num + 1, indent + 1).start;
+                        let start_byte = line_index
+                            .line_col_to_byte_range(line_num + 1, 1)
+                            .start;
+                        let end_byte = line_index
+                            .line_col_to_byte_range(line_num + 1, indent + 1)
+                            .start;
                         start_byte..end_byte
                     } else {
                         // For no indentation, insert at start of line
-                        let byte_pos = line_index.line_col_to_byte_range(line_num + 1, 1).start;
+                        let byte_pos = line_index
+                            .line_col_to_byte_range(line_num + 1, 1)
+                            .start;
                         byte_pos..byte_pos
                     };
 
@@ -178,7 +197,10 @@ impl MD005ListIndent {
                         );
 
                         // Only add if we don't already have a warning for this line
-                        if !warnings.iter().any(|w| w.line == line_num + 1) {
+                        if !warnings
+                            .iter()
+                            .any(|w| w.line == line_num + 1)
+                        {
                             let line = &line_info.content;
                             let (start_line, start_col, end_line, end_col) = if indent > 0 {
                                 calculate_match_range(line_num + 1, line, 0, indent)
@@ -189,12 +211,18 @@ impl MD005ListIndent {
                             // Fix range should span from start of line to end of indentation
                             let fix_range = if indent > 0 {
                                 // Replace the current indentation with expected indentation
-                                let start_byte = line_index.line_col_to_byte_range(line_num + 1, 1).start;
-                                let end_byte = line_index.line_col_to_byte_range(line_num + 1, indent + 1).start;
+                                let start_byte = line_index
+                                    .line_col_to_byte_range(line_num + 1, 1)
+                                    .start;
+                                let end_byte = line_index
+                                    .line_col_to_byte_range(line_num + 1, indent + 1)
+                                    .start;
                                 start_byte..end_byte
                             } else {
                                 // For no indentation, insert at start of line
-                                let byte_pos = line_index.line_col_to_byte_range(line_num + 1, 1).start;
+                                let byte_pos = line_index
+                                    .line_col_to_byte_range(line_num + 1, 1)
+                                    .start;
                                 byte_pos..byte_pos
                             };
 
@@ -223,7 +251,6 @@ impl MD005ListIndent {
                 } else {
                     level_indents.insert(key, indent);
                 }
-
             } else {
                 // Check if it's a list continuation
                 if list_items.is_empty() || !in_list {
@@ -232,8 +259,9 @@ impl MD005ListIndent {
 
                 let (prev_line_num, prev_indent, _) = list_items.last().unwrap();
                 let prev_line_info = &ctx.lines[*prev_line_num];
-                if prev_line_info.list_item.is_some() && 
-                   !Self::is_list_continuation(*prev_indent, &line_info.content, false) {
+                if prev_line_info.list_item.is_some()
+                    && !Self::is_list_continuation(*prev_indent, &line_info.content, false)
+                {
                     in_list = false;
                 }
             }
@@ -272,9 +300,7 @@ impl Rule for MD005ListIndent {
         // Sort warnings by position (descending) to apply from end to start
         let mut warnings_with_fixes: Vec<_> = warnings
             .into_iter()
-            .filter_map(|w| {
-                w.fix.clone().map(|fix| (w, fix))
-            })
+            .filter_map(|w| w.fix.clone().map(|fix| (w, fix)))
             .collect();
         warnings_with_fixes.sort_by_key(|(_, fix)| std::cmp::Reverse(fix.range.start));
 
@@ -295,7 +321,13 @@ impl Rule for MD005ListIndent {
 
     /// Check if this rule should be skipped
     fn should_skip(&self, ctx: &crate::lint_context::LintContext) -> bool {
-        ctx.content.is_empty() || (!ctx.content.contains('*') && !ctx.content.contains('-') && !ctx.content.contains('+') && !ctx.content.contains(|c: char| c.is_ascii_digit()))
+        ctx.content.is_empty()
+            || (!ctx.content.contains('*')
+                && !ctx.content.contains('-')
+                && !ctx.content.contains('+')
+                && !ctx
+                    .content
+                    .contains(|c: char| c.is_ascii_digit()))
     }
 
     /// Optimized check using document structure
@@ -358,21 +390,27 @@ mod tests {
         let content = "* Item 1\n* Item 2\n  * Nested item\n  * Another nested item";
         let structure = DocumentStructure::new(content);
         let ctx = LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert!(result.is_empty());
 
         // Test with inconsistent list indentation
         let content = "* Item 1\n* Item 2\n * Nested item\n  * Another nested item";
         let structure = DocumentStructure::new(content);
         let ctx = LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert!(!result.is_empty()); // Should have at least one warning
 
         // Test with different level indentation issues
         let content = "* Item 1\n  * Nested item\n * Another nested item with wrong indent";
         let structure = DocumentStructure::new(content);
         let ctx = LintContext::new(content);
-        let result = rule.check_with_structure(&ctx, &structure).unwrap();
+        let result = rule
+            .check_with_structure(&ctx, &structure)
+            .unwrap();
         assert!(!result.is_empty()); // Should have at least one warning
     }
 }

@@ -310,8 +310,12 @@ impl DocumentStructure {
         }
 
         // Detect horizontal rules only if needed
-        let has_potential_hrs = content.contains("---") || content.contains("***") || content.contains("___") ||
-                                content.contains("- -") || content.contains("* *") || content.contains("_ _");
+        let has_potential_hrs = content.contains("---")
+            || content.contains("***")
+            || content.contains("___")
+            || content.contains("- -")
+            || content.contains("* *")
+            || content.contains("_ _");
         if has_potential_hrs {
             self.detect_horizontal_rules(content);
         }
@@ -404,7 +408,8 @@ impl DocumentStructure {
                 }
                 self.heading_lines.push(i + 1);
                 self.heading_levels.push(level);
-                self.heading_regions.push((i + 1, i + 1)); // ATX: start==end
+                self.heading_regions
+                    .push((i + 1, i + 1)); // ATX: start==end
 
                 // If this is the first heading detected, set the style
                 if self.first_heading_style.is_none() {
@@ -499,7 +504,9 @@ impl DocumentStructure {
                         .map_or('`', |m| m.as_str().chars().next().unwrap());
 
                     // Only set language if it's not empty
-                    let lang = captures.get(3).map(|m| m.as_str().to_string());
+                    let lang = captures
+                        .get(3)
+                        .map(|m| m.as_str().to_string());
                     current_language = lang.filter(|l| !l.is_empty());
                 }
                 // Check for indented code block (CommonMark compliant)
@@ -523,7 +530,9 @@ impl DocumentStructure {
 
                             while lookahead < lines.len() {
                                 let lookahead_line = lines[lookahead];
-                                if Self::is_indented_code_line(lookahead_line) && !lookahead_line.trim().is_empty() {
+                                if Self::is_indented_code_line(lookahead_line)
+                                    && !lookahead_line.trim().is_empty()
+                                {
                                     found_indented = true;
                                     break;
                                 } else if !lookahead_line.trim().is_empty() {
@@ -558,7 +567,11 @@ impl DocumentStructure {
                 }
             } else {
                 // Check for fenced code block end - must start with the same fence character
-                if FENCED_END.is_match(line) && line.trim().starts_with(current_fence_char) {
+                if FENCED_END.is_match(line)
+                    && line
+                        .trim()
+                        .starts_with(current_fence_char)
+                {
                     code_blocks.push(CodeBlock {
                         start_line: current_block_start,
                         end_line: i + 1,
@@ -595,8 +608,10 @@ impl DocumentStructure {
 
         for block in &self.code_blocks {
             if let CodeBlockType::Fenced = block.block_type {
-                self.fenced_code_block_starts.push(block.start_line);
-                self.fenced_code_block_ends.push(block.end_line);
+                self.fenced_code_block_starts
+                    .push(block.start_line);
+                self.fenced_code_block_ends
+                    .push(block.end_line);
             }
         }
     }
@@ -803,8 +818,14 @@ impl DocumentStructure {
 
             // Check for link definitions
             if let Some(cap) = LINK_DEFINITION.captures(line) {
-                let id = cap.get(1).map_or("", |m| m.as_str()).to_string();
-                let url = cap.get(2).map_or("", |m| m.as_str()).to_string();
+                let id = cap
+                    .get(1)
+                    .map_or("", |m| m.as_str())
+                    .to_string();
+                let url = cap
+                    .get(2)
+                    .map_or("", |m| m.as_str())
+                    .to_string();
                 link_defs.insert(id.to_lowercase(), url);
             }
         }
@@ -840,8 +861,14 @@ impl DocumentStructure {
                     if rest.starts_with('[') {
                         if let Some(cap) = INLINE_LINK.captures(rest) {
                             let whole_match = cap.get(0).unwrap();
-                            let text = cap.get(1).map_or("", |m| m.as_str()).to_string();
-                            let url = cap.get(2).map_or("", |m| m.as_str()).to_string();
+                            let text = cap
+                                .get(1)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
+                            let url = cap
+                                .get(2)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
 
                             // Ensure we're not inside a code span
                             let is_in_span = (i..i + whole_match.end()).any(|pos| {
@@ -865,8 +892,14 @@ impl DocumentStructure {
                             i += whole_match.end();
                         } else if let Some(cap) = REFERENCE_LINK.captures(rest) {
                             let whole_match = cap.get(0).unwrap();
-                            let text = cap.get(1).map_or("", |m| m.as_str()).to_string();
-                            let id = cap.get(2).map_or("", |m| m.as_str()).to_string();
+                            let text = cap
+                                .get(1)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
+                            let id = cap
+                                .get(2)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
 
                             // Use the ID or text as the reference
                             let ref_id = if id.is_empty() { text.clone() } else { id };
@@ -904,8 +937,14 @@ impl DocumentStructure {
                     } else if rest.starts_with("![") {
                         if let Some(cap) = INLINE_IMAGE.captures(rest) {
                             let whole_match = cap.get(0).unwrap();
-                            let alt_text = cap.get(1).map_or("", |m| m.as_str()).to_string();
-                            let src = cap.get(2).map_or("", |m| m.as_str()).to_string();
+                            let alt_text = cap
+                                .get(1)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
+                            let src = cap
+                                .get(2)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
 
                             // Ensure we're not inside a code span
                             let is_in_span = (i..i + whole_match.end()).any(|pos| {
@@ -929,8 +968,14 @@ impl DocumentStructure {
                             i += whole_match.end();
                         } else if let Some(cap) = REFERENCE_IMAGE.captures(rest) {
                             let whole_match = cap.get(0).unwrap();
-                            let alt_text = cap.get(1).map_or("", |m| m.as_str()).to_string();
-                            let id = cap.get(2).map_or("", |m| m.as_str()).to_string();
+                            let alt_text = cap
+                                .get(1)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
+                            let id = cap
+                                .get(2)
+                                .map_or("", |m| m.as_str())
+                                .to_string();
 
                             // Use the ID or alt_text as the reference
                             let ref_id = if id.is_empty() { alt_text.clone() } else { id };
@@ -1002,9 +1047,17 @@ impl DocumentStructure {
             }
             // Use fancy-regex for advanced matching
             if let Ok(Some(cap)) = TASK_MARKER.captures(line) {
-                let indentation = cap.name("indent").map_or(0, |m| m.as_str().len());
-                let marker = cap.name("marker").map_or("", |m| m.as_str()).to_string();
-                let content = cap.name("content").map_or("", |m| m.as_str()).to_string();
+                let indentation = cap
+                    .name("indent")
+                    .map_or(0, |m| m.as_str().len());
+                let marker = cap
+                    .name("marker")
+                    .map_or("", |m| m.as_str())
+                    .to_string();
+                let content = cap
+                    .name("content")
+                    .map_or("", |m| m.as_str())
+                    .to_string();
                 self.list_lines.push(line_num + 1);
                 self.list_items.push(ListItem {
                     line_number: line_num + 1,
@@ -1016,9 +1069,17 @@ impl DocumentStructure {
                 continue;
             }
             if let Ok(Some(cap)) = UL_MARKER.captures(line) {
-                let indentation = cap.name("indent").map_or(0, |m| m.as_str().len());
-                let marker = cap.name("marker").map_or("", |m| m.as_str()).to_string();
-                let content = cap.name("content").map_or("", |m| m.as_str()).to_string();
+                let indentation = cap
+                    .name("indent")
+                    .map_or(0, |m| m.as_str().len());
+                let marker = cap
+                    .name("marker")
+                    .map_or("", |m| m.as_str())
+                    .to_string();
+                let content = cap
+                    .name("content")
+                    .map_or("", |m| m.as_str())
+                    .to_string();
                 self.list_lines.push(line_num + 1);
                 self.list_items.push(ListItem {
                     line_number: line_num + 1,
@@ -1030,9 +1091,17 @@ impl DocumentStructure {
                 continue;
             }
             if let Ok(Some(cap)) = OL_MARKER.captures(line) {
-                let indentation = cap.name("indent").map_or(0, |m| m.as_str().len());
-                let marker = cap.name("marker").map_or("", |m| m.as_str()).to_string();
-                let content = cap.name("content").map_or("", |m| m.as_str()).to_string();
+                let indentation = cap
+                    .name("indent")
+                    .map_or(0, |m| m.as_str().len());
+                let marker = cap
+                    .name("marker")
+                    .map_or("", |m| m.as_str())
+                    .to_string();
+                let content = cap
+                    .name("content")
+                    .map_or("", |m| m.as_str())
+                    .to_string();
                 self.list_lines.push(line_num + 1);
                 self.list_items.push(ListItem {
                     line_number: line_num + 1,
@@ -1120,15 +1189,21 @@ impl DocumentStructure {
             }
 
             // Check for horizontal rule patterns
-            if HR_HYPHEN.is_match(line) || HR_ASTERISK.is_match(line) || HR_UNDERSCORE.is_match(line) {
+            if HR_HYPHEN.is_match(line)
+                || HR_ASTERISK.is_match(line)
+                || HR_UNDERSCORE.is_match(line)
+            {
                 // Additional validation: ensure it's not part of a setext heading
                 // (setext headings have content on the previous line)
                 let is_setext_marker = if i > 0 {
                     let prev_line = lines[i - 1].trim();
-                    !prev_line.is_empty() && 
-                    !self.is_in_code_block(i) && 
-                    !self.is_in_front_matter(i) &&
-                    line.trim().chars().all(|c| c == '-' || c == ' ')
+                    !prev_line.is_empty()
+                        && !self.is_in_code_block(i)
+                        && !self.is_in_front_matter(i)
+                        && line
+                            .trim()
+                            .chars()
+                            .all(|c| c == '-' || c == ' ')
                 } else {
                     false
                 };
@@ -1286,7 +1361,11 @@ impl DocumentStructure {
         let tag_name = self.extract_tag_name(start_trimmed);
 
         // Look for the closing tag or blank line
-        for (i, line) in lines.iter().enumerate().skip(start_line + 1) {
+        for (i, line) in lines
+            .iter()
+            .enumerate()
+            .skip(start_line + 1)
+        {
             let trimmed = line.trim();
 
             // HTML block ends on blank line

@@ -2,9 +2,9 @@
 ///
 /// See [docs/md013.md](../../docs/md013.md) for full documentation, configuration, and examples.
 use crate::rule::{LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
+use crate::rule_config_serde::RuleConfig;
 use crate::utils::document_structure::{DocumentStructure, DocumentStructureExtensions};
 use crate::utils::range_utils::calculate_excess_range;
-use crate::rule_config_serde::RuleConfig;
 use lazy_static::lazy_static;
 use regex::Regex;
 use toml;
@@ -59,7 +59,7 @@ impl MD013LineLength {
             },
         }
     }
-    
+
     pub fn from_config_struct(config: MD013Config) -> Self {
         Self { config }
     }
@@ -165,7 +165,10 @@ impl Rule for MD013LineLength {
         let lines: Vec<&str> = content.lines().collect();
 
         // Early return if no lines could possibly exceed the limit
-        if lines.iter().all(|line| line.len() <= self.config.line_length) {
+        if lines
+            .iter()
+            .all(|line| line.len() <= self.config.line_length)
+        {
             return Ok(Vec::new());
         }
 
@@ -173,8 +176,11 @@ impl Rule for MD013LineLength {
         let line_index = crate::utils::range_utils::LineIndex::new(content.to_string());
 
         // Create a quick lookup set for heading lines
-        let heading_lines_set: std::collections::HashSet<usize> =
-            structure.heading_lines.iter().cloned().collect();
+        let heading_lines_set: std::collections::HashSet<usize> = structure
+            .heading_lines
+            .iter()
+            .cloned()
+            .collect();
 
         // Pre-compute table lines for efficiency instead of calling is_in_table for each line
         let table_lines_set: std::collections::HashSet<usize> = if self.config.tables {
@@ -208,7 +214,12 @@ impl Rule for MD013LineLength {
             // Skip various block types efficiently
             if !self.config.strict {
                 // Skip setext heading underlines
-                if !line.trim().is_empty() && line.trim().chars().all(|c| c == '=' || c == '-') {
+                if !line.trim().is_empty()
+                    && line
+                        .trim()
+                        .chars()
+                        .all(|c| c == '=' || c == '-')
+                {
                     continue;
                 }
 
@@ -233,9 +244,14 @@ impl Rule for MD013LineLength {
                 // First try trimming trailing whitespace
                 let trimmed = line.trim_end();
                 if trimmed.len() <= self.config.line_length && trimmed != *line {
-                    let line_start = line_index.line_col_to_byte_range(line_number, 1).start;
+                    let line_start = line_index
+                        .line_col_to_byte_range(line_number, 1)
+                        .start;
                     let line_end = if line_number < lines.len() {
-                        line_index.line_col_to_byte_range(line_number + 1, 1).start - 1
+                        line_index
+                            .line_col_to_byte_range(line_number + 1, 1)
+                            .start
+                            - 1
                     } else {
                         content.len()
                     };
@@ -327,10 +343,13 @@ impl Rule for MD013LineLength {
         let default_config = MD013Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD013Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD013Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }
@@ -345,7 +364,8 @@ impl Rule for MD013LineLength {
     {
         let mut rule_config = crate::rule_config_serde::load_rule_config::<MD013Config>(config);
         // Special handling for line_length from global config
-        if rule_config.line_length == 80 { // default value
+        if rule_config.line_length == 80 {
+            // default value
             rule_config.line_length = config.global.line_length as usize;
         }
         Box::new(Self::from_config_struct(rule_config))
@@ -383,7 +403,12 @@ impl MD013LineLength {
         }
 
         // Skip setext heading underlines
-        if !line.trim().is_empty() && line.trim().chars().all(|c| c == '=' || c == '-') {
+        if !line.trim().is_empty()
+            && line
+                .trim()
+                .chars()
+                .all(|c| c == '=' || c == '-')
+        {
             return true;
         }
 

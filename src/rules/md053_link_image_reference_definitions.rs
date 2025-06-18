@@ -1,6 +1,6 @@
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, Severity};
 use crate::utils::document_structure::DocumentStructure;
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 use fancy_regex::Regex as FancyRegex;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -153,7 +153,12 @@ impl MD053LinkImageReferenceDefinitions {
     ///
     /// This method returns a HashSet of all normalized reference IDs found in usage.
     /// It leverages cached data from LintContext for efficiency.
-    fn find_usages(&self, content: &str, doc_structure: &DocumentStructure, ctx: &crate::lint_context::LintContext) -> HashSet<String> {
+    fn find_usages(
+        &self,
+        content: &str,
+        doc_structure: &DocumentStructure,
+        ctx: &crate::lint_context::LintContext,
+    ) -> HashSet<String> {
         let lines: Vec<&str> = content.lines().collect();
         let mut usages: HashSet<String> = HashSet::new();
 
@@ -194,16 +199,21 @@ impl MD053LinkImageReferenceDefinitions {
             }
 
             // Find potential shortcut references
-            for caps in SHORTCUT_REFERENCE_REGEX.captures_iter(line).flatten() {
+            for caps in SHORTCUT_REFERENCE_REGEX
+                .captures_iter(line)
+                .flatten()
+            {
                 if let Some(full_match) = caps.get(0) {
                     if let Some(ref_id_match) = caps.get(1) {
-
                         // Check if the match is within a code span
-                        let line_start_byte = ctx.line_to_byte_offset(line_num).unwrap_or(0);
+                        let line_start_byte = ctx
+                            .line_to_byte_offset(line_num)
+                            .unwrap_or(0);
                         let match_byte_offset = line_start_byte + full_match.start();
-                        let in_code_span = ctx.code_spans.iter().any(|span| 
-                            match_byte_offset >= span.byte_offset && match_byte_offset < span.byte_end
-                        );
+                        let in_code_span = ctx.code_spans.iter().any(|span| {
+                            match_byte_offset >= span.byte_offset
+                                && match_byte_offset < span.byte_end
+                        });
 
                         if !in_code_span {
                             let ref_id = ref_id_match.as_str().trim();
@@ -269,7 +279,11 @@ impl MD053LinkImageReferenceDefinitions {
         while !result_lines.is_empty() && result_lines[0].trim().is_empty() {
             result_lines.remove(0);
         }
-        while !result_lines.is_empty() && result_lines[result_lines.len() - 1].trim().is_empty() {
+        while !result_lines.is_empty()
+            && result_lines[result_lines.len() - 1]
+                .trim()
+                .is_empty()
+        {
             result_lines.pop();
         }
 
@@ -323,16 +337,17 @@ impl Rule for MD053LinkImageReferenceDefinitions {
                 column: start_col,
                 end_line,
                 end_column: end_col,
-                message: format!(
-                    "Unused link/image reference: [{}]",
-                    definition
-                ),
+                message: format!("Unused link/image reference: [{}]", definition),
                 severity: Severity::Warning,
                 fix: Some(Fix {
                     // Remove the entire line including the newline
                     range: {
-                        let line_start = line_index.get_line_start_byte(line_num).unwrap_or(0);
-                        let line_end = line_index.get_line_start_byte(line_num + 1).unwrap_or(line_start + line_content.len());
+                        let line_start = line_index
+                            .get_line_start_byte(line_num)
+                            .unwrap_or(0);
+                        let line_end = line_index
+                            .get_line_start_byte(line_num + 1)
+                            .unwrap_or(line_start + line_content.len());
                         line_start..line_end
                     },
                     replacement: String::new(), // Remove the line

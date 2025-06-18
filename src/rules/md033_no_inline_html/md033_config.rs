@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::rule_config_serde::RuleConfig;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -19,7 +19,10 @@ impl Default for MD033Config {
 impl MD033Config {
     /// Convert allowed elements to HashSet for efficient lookup
     pub fn allowed_set(&self) -> HashSet<String> {
-        self.allowed.iter().map(|s| s.to_lowercase()).collect()
+        self.allowed
+            .iter()
+            .map(|s| s.to_lowercase())
+            .collect()
     }
 }
 

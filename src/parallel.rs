@@ -203,7 +203,9 @@ mod tests {
             ),
         ];
 
-        let results = processor.process_files(&test_files, &rules).unwrap();
+        let results = processor
+            .process_files(&test_files, &rules)
+            .unwrap();
         assert_eq!(results.len(), 2);
 
         // Verify all results are Ok

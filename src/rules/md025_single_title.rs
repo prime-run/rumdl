@@ -2,7 +2,7 @@
 ///
 /// See [docs/md025.md](../../docs/md025.md) for full documentation, configuration, and examples.
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
-use crate::utils::range_utils::{calculate_match_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_match_range};
 use lazy_static::lazy_static;
 use regex::Regex;
 use toml;
@@ -13,7 +13,7 @@ use md025_config::MD025Config;
 lazy_static! {
     // Pattern for quick check if content has any headings at all
     static ref HEADING_CHECK: Regex = Regex::new(r"(?m)^(?:\s*)#").unwrap();
-    
+
     // Horizontal rule patterns (from MD035)
     static ref HR_DASH: Regex = Regex::new(r"^\-{3,}\s*$").unwrap();
     static ref HR_ASTERISK: Regex = Regex::new(r"^\*{3,}\s*$").unwrap();
@@ -44,7 +44,7 @@ impl MD025SingleTitle {
                 front_matter_title: front_matter_title.to_string(),
                 allow_document_sections: true,
                 allow_with_separators: true,
-            }
+            },
         }
     }
 
@@ -55,10 +55,10 @@ impl MD025SingleTitle {
                 front_matter_title: "title".to_string(),
                 allow_document_sections: false,
                 allow_with_separators: false,
-            }
+            },
         }
     }
-    
+
     pub fn from_config_struct(config: MD025Config) -> Self {
         Self { config }
     }
@@ -70,28 +70,52 @@ impl MD025SingleTitle {
         }
 
         let lower_text = heading_text.to_lowercase();
-        
+
         // Common section names that are legitimate as separate H1s
         let section_indicators = [
-            "appendix", "appendices",
-            "reference", "references", "bibliography",
-            "index", "indices",
-            "glossary", "glossaries",
-            "conclusion", "conclusions",
-            "summary", "executive summary",
-            "acknowledgment", "acknowledgments", "acknowledgement", "acknowledgements",
-            "about", "contact", "license", "legal",
-            "changelog", "change log", "history",
-            "faq", "frequently asked questions",
-            "troubleshooting", "support",
-            "installation", "setup", "getting started",
-            "api reference", "api documentation",
-            "examples", "tutorials", "guides",
+            "appendix",
+            "appendices",
+            "reference",
+            "references",
+            "bibliography",
+            "index",
+            "indices",
+            "glossary",
+            "glossaries",
+            "conclusion",
+            "conclusions",
+            "summary",
+            "executive summary",
+            "acknowledgment",
+            "acknowledgments",
+            "acknowledgement",
+            "acknowledgements",
+            "about",
+            "contact",
+            "license",
+            "legal",
+            "changelog",
+            "change log",
+            "history",
+            "faq",
+            "frequently asked questions",
+            "troubleshooting",
+            "support",
+            "installation",
+            "setup",
+            "getting started",
+            "api reference",
+            "api documentation",
+            "examples",
+            "tutorials",
+            "guides",
         ];
 
         // Check if the heading starts with these patterns
-        section_indicators.iter().any(|&indicator| {
-            lower_text.starts_with(indicator) ||
+        section_indicators
+            .iter()
+            .any(|&indicator| {
+                lower_text.starts_with(indicator) ||
             lower_text.starts_with(&format!("{}:", indicator)) ||
             lower_text.contains(&format!(" {}", indicator)) ||
             // Handle appendix numbering like "Appendix A", "Appendix 1"
@@ -101,7 +125,7 @@ impl MD025SingleTitle {
                  lower_text.contains(" 1") || lower_text.contains(" 2") ||
                  lower_text.contains(" i") || lower_text.contains(" ii"))
             ))
-        })
+            })
     }
 
     /// Check if a line is a horizontal rule
@@ -114,16 +138,23 @@ impl MD025SingleTitle {
             || HR_SPACED_ASTERISK.is_match(trimmed)
             || HR_SPACED_UNDERSCORE.is_match(trimmed)
     }
-    
+
     /// Check if a line might be a Setext heading underline
-    fn is_potential_setext_heading(ctx: &crate::lint_context::LintContext, line_num: usize) -> bool {
+    fn is_potential_setext_heading(
+        ctx: &crate::lint_context::LintContext,
+        line_num: usize,
+    ) -> bool {
         if line_num == 0 || line_num >= ctx.lines.len() {
             return false;
         }
-        
+
         let line = ctx.lines[line_num].content.trim();
-        let prev_line = if line_num > 0 { ctx.lines[line_num - 1].content.trim() } else { "" };
-        
+        let prev_line = if line_num > 0 {
+            ctx.lines[line_num - 1].content.trim()
+        } else {
+            ""
+        };
+
         let is_dash_line = !line.is_empty() && line.chars().all(|c| c == '-');
         let is_equals_line = !line.is_empty() && line.chars().all(|c| c == '=');
         let prev_line_has_content = !prev_line.is_empty() && !Self::is_horizontal_rule(prev_line);
@@ -131,7 +162,11 @@ impl MD025SingleTitle {
     }
 
     /// Check if headings are separated by horizontal rules
-    fn has_separator_before_heading(&self, ctx: &crate::lint_context::LintContext, heading_line: usize) -> bool {
+    fn has_separator_before_heading(
+        &self,
+        ctx: &crate::lint_context::LintContext,
+        heading_line: usize,
+    ) -> bool {
         if !self.config.allow_with_separators || heading_line == 0 {
             return false;
         }
@@ -139,26 +174,25 @@ impl MD025SingleTitle {
         // Look for horizontal rules in the lines before this heading
         // Check up to 5 lines before the heading for a horizontal rule
         let search_start = heading_line.saturating_sub(5);
-        
+
         for line_num in search_start..heading_line {
             if line_num >= ctx.lines.len() {
                 continue;
             }
-            
+
             let line = &ctx.lines[line_num].content;
             if Self::is_horizontal_rule(line) && !Self::is_potential_setext_heading(ctx, line_num) {
                 // Found a horizontal rule before this heading
                 // Check that there's no other heading between the HR and this heading
-                let has_intermediate_heading = ((line_num + 1)..heading_line).any(|idx| {
-                    idx < ctx.lines.len() && ctx.lines[idx].heading.is_some()
-                });
-                
+                let has_intermediate_heading = ((line_num + 1)..heading_line)
+                    .any(|idx| idx < ctx.lines.len() && ctx.lines[idx].heading.is_some());
+
                 if !has_intermediate_heading {
                     return true;
                 }
             }
         }
-        
+
         false
     }
 }
@@ -183,7 +217,11 @@ impl Rule for MD025SingleTitle {
 
         // Check for front matter title if configured
         let mut _found_title_in_front_matter = false;
-        if !self.config.front_matter_title.is_empty() {
+        if !self
+            .config
+            .front_matter_title
+            .is_empty()
+        {
             // Detect front matter manually
             let content_lines: Vec<&str> = ctx.content.lines().collect();
             if content_lines.first().map(|l| l.trim()) == Some("---") {
@@ -192,12 +230,14 @@ impl Rule for MD025SingleTitle {
                     if line.trim() == "---" {
                         // Extract front matter content
                         let front_matter_content = content_lines[1..idx].join("\n");
-                        
+
                         // Check if it contains a title field
-                        _found_title_in_front_matter = front_matter_content.lines().any(|line| {
-                            line.trim()
-                                .starts_with(&format!("{}:", self.config.front_matter_title))
-                        });
+                        _found_title_in_front_matter = front_matter_content
+                            .lines()
+                            .any(|line| {
+                                line.trim()
+                                    .starts_with(&format!("{}:", self.config.front_matter_title))
+                            });
                         break;
                     }
                 }
@@ -227,8 +267,8 @@ impl Rule for MD025SingleTitle {
                     let heading_text = &heading.text;
 
                     // Check if this heading should be allowed
-                    let should_allow = self.is_document_section_heading(heading_text) ||
-                        self.has_separator_before_heading(ctx, line_num);
+                    let should_allow = self.is_document_section_heading(heading_text)
+                        || self.has_separator_before_heading(ctx, line_num);
 
                     if should_allow {
                         continue; // Skip flagging this heading
@@ -240,12 +280,22 @@ impl Rule for MD025SingleTitle {
                         pos
                     } else {
                         // Fallback: find after hash markers for ATX headings
-                        if line_content.trim_start().starts_with('#') {
+                        if line_content
+                            .trim_start()
+                            .starts_with('#')
+                        {
                             let trimmed = line_content.trim_start();
-                            let hash_count = trimmed.chars().take_while(|&c| c == '#').count();
+                            let hash_count = trimmed
+                                .chars()
+                                .take_while(|&c| c == '#')
+                                .count();
                             let after_hashes = &trimmed[hash_count..];
-                            let text_start_in_trimmed = after_hashes.find(heading_text).unwrap_or(0);
-                            (line_content.len() - trimmed.len()) + hash_count + text_start_in_trimmed
+                            let text_start_in_trimmed = after_hashes
+                                .find(heading_text)
+                                .unwrap_or(0);
+                            (line_content.len() - trimmed.len())
+                                + hash_count
+                                + text_start_in_trimmed
                         } else {
                             0 // Setext headings start at beginning
                         }
@@ -272,12 +322,18 @@ impl Rule for MD025SingleTitle {
                         fix: Some(Fix {
                             range: line_index.line_content_range(line_num + 1),
                             replacement: {
-                                let leading_spaces = line_content.len() - line_content.trim_start().len();
+                                let leading_spaces =
+                                    line_content.len() - line_content.trim_start().len();
                                 let indentation = " ".repeat(leading_spaces);
                                 if heading_text.is_empty() {
                                     format!("{}{}", indentation, "#".repeat(self.config.level + 1))
                                 } else {
-                                    format!("{}{} {}", indentation, "#".repeat(self.config.level + 1), heading_text)
+                                    format!(
+                                        "{}{} {}",
+                                        indentation,
+                                        "#".repeat(self.config.level + 1),
+                                        heading_text
+                                    )
                                 }
                             },
                         }),
@@ -299,16 +355,20 @@ impl Rule for MD025SingleTitle {
                 skip_next = false;
                 continue;
             }
-            
+
             if let Some(heading) = &line_info.heading {
                 if heading.level as usize == self.config.level {
                     if !found_first {
                         found_first = true;
                         // Keep the first heading as-is
                         fixed_lines.push(line_info.content.clone());
-                        
+
                         // For Setext headings, also add the underline
-                        if matches!(heading.style, crate::lint_context::HeadingStyle::Setext1 | crate::lint_context::HeadingStyle::Setext2) {
+                        if matches!(
+                            heading.style,
+                            crate::lint_context::HeadingStyle::Setext1
+                                | crate::lint_context::HeadingStyle::Setext2
+                        ) {
                             if line_num + 1 < ctx.lines.len() {
                                 fixed_lines.push(ctx.lines[line_num + 1].content.clone());
                                 skip_next = true;
@@ -316,15 +376,19 @@ impl Rule for MD025SingleTitle {
                         }
                     } else {
                         // Check if this heading should be allowed
-                        let should_allow = self.is_document_section_heading(&heading.text) ||
-                            self.has_separator_before_heading(ctx, line_num);
+                        let should_allow = self.is_document_section_heading(&heading.text)
+                            || self.has_separator_before_heading(ctx, line_num);
 
                         if should_allow {
                             // Keep the heading as-is
                             fixed_lines.push(line_info.content.clone());
-                            
+
                             // For Setext headings, also add the underline
-                            if matches!(heading.style, crate::lint_context::HeadingStyle::Setext1 | crate::lint_context::HeadingStyle::Setext2) {
+                            if matches!(
+                                heading.style,
+                                crate::lint_context::HeadingStyle::Setext1
+                                    | crate::lint_context::HeadingStyle::Setext2
+                            ) {
                                 if line_num + 1 < ctx.lines.len() {
                                     fixed_lines.push(ctx.lines[line_num + 1].content.clone());
                                     skip_next = true;
@@ -354,7 +418,7 @@ impl Rule for MD025SingleTitle {
                                     crate::rules::heading_utils::HeadingStyle::Atx
                                 }
                             };
-                            
+
                             let replacement = if heading.text.is_empty() {
                                 // For empty headings, manually construct the replacement
                                 match style {
@@ -362,11 +426,15 @@ impl Rule for MD025SingleTitle {
                                         "#".repeat(self.config.level + 1)
                                     }
                                     crate::rules::heading_utils::HeadingStyle::AtxClosed => {
-                                        format!("{} {}", "#".repeat(self.config.level + 1), "#".repeat(self.config.level + 1))
+                                        format!(
+                                            "{} {}",
+                                            "#".repeat(self.config.level + 1),
+                                            "#".repeat(self.config.level + 1)
+                                        )
                                     }
-                                    crate::rules::heading_utils::HeadingStyle::Setext1 | 
-                                    crate::rules::heading_utils::HeadingStyle::Setext2 |
-                                    crate::rules::heading_utils::HeadingStyle::Consistent => {
+                                    crate::rules::heading_utils::HeadingStyle::Setext1
+                                    | crate::rules::heading_utils::HeadingStyle::Setext2
+                                    | crate::rules::heading_utils::HeadingStyle::Consistent => {
                                         // For empty Setext or Consistent, use ATX style
                                         "#".repeat(self.config.level + 1)
                                     }
@@ -378,13 +446,17 @@ impl Rule for MD025SingleTitle {
                                     style,
                                 )
                             };
-                            
+
                             // Add indentation
                             let indentation = " ".repeat(line_info.indent);
                             fixed_lines.push(format!("{}{}", indentation, replacement));
-                            
+
                             // For Setext headings, skip the original underline
-                            if matches!(heading.style, crate::lint_context::HeadingStyle::Setext1 | crate::lint_context::HeadingStyle::Setext2) {
+                            if matches!(
+                                heading.style,
+                                crate::lint_context::HeadingStyle::Setext1
+                                    | crate::lint_context::HeadingStyle::Setext2
+                            ) {
                                 if line_num + 1 < ctx.lines.len() {
                                     skip_next = true;
                                 }
@@ -394,9 +466,13 @@ impl Rule for MD025SingleTitle {
                 } else {
                     // Not a target level heading, keep as-is
                     fixed_lines.push(line_info.content.clone());
-                    
+
                     // For Setext headings, also add the underline
-                    if matches!(heading.style, crate::lint_context::HeadingStyle::Setext1 | crate::lint_context::HeadingStyle::Setext2) {
+                    if matches!(
+                        heading.style,
+                        crate::lint_context::HeadingStyle::Setext1
+                            | crate::lint_context::HeadingStyle::Setext2
+                    ) {
                         if line_num + 1 < ctx.lines.len() {
                             fixed_lines.push(ctx.lines[line_num + 1].content.clone());
                             skip_next = true;
@@ -416,7 +492,6 @@ impl Rule for MD025SingleTitle {
             Ok(result)
         }
     }
-
 
     /// Get the category of this rule for selective processing
     fn category(&self) -> RuleCategory {
@@ -599,7 +674,10 @@ mod tests {
         let content = "# First Title\n\nContent here.\n\n---\n\n# Second Title\n\nMore content.\n\n***\n\n# Third Title\n\nFinal content.";
         let ctx = crate::lint_context::LintContext::new(content);
         let result = rule.check(&ctx).unwrap();
-        assert!(result.is_empty(), "Should not flag headings separated by horizontal rules");
+        assert!(
+            result.is_empty(),
+            "Should not flag headings separated by horizontal rules"
+        );
 
         // Test that headings without separators are still flagged
         let content = "# First Title\n\nContent here.\n\n---\n\n# Second Title\n\nMore content.\n\n# Third Title\n\nNo separator before this one.";
@@ -613,6 +691,10 @@ mod tests {
         let content = "# First Title\n\nContent here.\n\n---\n\n# Second Title\n\nMore content.";
         let ctx = crate::lint_context::LintContext::new(content);
         let result = strict_rule.check(&ctx).unwrap();
-        assert_eq!(result.len(), 1, "Strict mode should flag all multiple H1s regardless of separators");
+        assert_eq!(
+            result.len(),
+            1,
+            "Strict mode should flag all multiple H1s regardless of separators"
+        );
     }
 }

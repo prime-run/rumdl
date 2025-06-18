@@ -179,9 +179,17 @@ impl MD034NoBareUrls {
             };
             let after = content.get(url_end..url_end + 1);
             let is_valid_boundary = before.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
             }) && after.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
             });
             if !is_valid_boundary {
                 continue;
@@ -191,7 +199,7 @@ impl MD034NoBareUrls {
             if ctx.is_in_code_block_or_span(url_start) {
                 continue;
             }
-            
+
             // Convert byte offset to line/column for warning
             let (line_num, col_num) = ctx.offset_to_line_col(url_start);
 
@@ -204,8 +212,14 @@ impl MD034NoBareUrls {
             }
 
             // Skip reference definitions
-            let line_start = content[..url_start].rfind('\n').map(|i| i + 1).unwrap_or(0);
-            let line_end = content[url_start..].find('\n').map(|i| url_start + i).unwrap_or(content.len());
+            let line_start = content[..url_start]
+                .rfind('\n')
+                .map(|i| i + 1)
+                .unwrap_or(0);
+            let line_end = content[url_start..]
+                .find('\n')
+                .map(|i| url_start + i)
+                .unwrap_or(content.len());
             let line = &content[line_start..line_end];
             if REFERENCE_DEF_RE.is_match(line) {
                 continue;
@@ -243,9 +257,19 @@ impl MD034NoBareUrls {
             };
             let after = content.get(email_end..email_end + 1);
             let is_valid_boundary = before.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_" && c != "."
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
+                    && c != "."
             }) && after.map_or(true, |c| {
-                !c.chars().next().unwrap().is_alphanumeric() && c != "_" && c != "."
+                !c.chars()
+                    .next()
+                    .unwrap()
+                    .is_alphanumeric()
+                    && c != "_"
+                    && c != "."
             });
             if !is_valid_boundary {
                 continue;
@@ -255,7 +279,7 @@ impl MD034NoBareUrls {
             if ctx.is_in_code_block_or_span(email_start) {
                 continue;
             }
-            
+
             // Convert byte offset to line/column for warning
             let (line_num, col_num) = ctx.offset_to_line_col(email_start);
 
@@ -268,8 +292,14 @@ impl MD034NoBareUrls {
             }
 
             let email_text = &content[email_start..email_end];
-            let line_start = content[..email_start].rfind('\n').map(|i| i + 1).unwrap_or(0);
-            let line_end = content[email_start..].find('\n').map(|i| email_start + i).unwrap_or(content.len());
+            let line_start = content[..email_start]
+                .rfind('\n')
+                .map(|i| i + 1)
+                .unwrap_or(0);
+            let line_end = content[email_start..]
+                .find('\n')
+                .map(|i| email_start + i)
+                .unwrap_or(content.len());
             let line = &content[line_start..line_end];
             let (start_line, start_col, end_line, end_col) =
                 calculate_url_range(line_num, line, col_num - 1, email_text.len());
@@ -328,9 +358,17 @@ impl MD034NoBareUrls {
                     };
                     let after = text_str.get(url_end..url_end + 1);
                     let is_valid_boundary = before.map_or(true, |c| {
-                        !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                        !c.chars()
+                            .next()
+                            .unwrap()
+                            .is_alphanumeric()
+                            && c != "_"
                     }) && after.map_or(true, |c| {
-                        !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                        !c.chars()
+                            .next()
+                            .unwrap()
+                            .is_alphanumeric()
+                            && c != "_"
                     });
                     if !is_valid_boundary {
                         continue;
@@ -368,9 +406,19 @@ impl MD034NoBareUrls {
                     };
                     let after = text_str.get(email_end..email_end + 1);
                     let is_valid_boundary = before.map_or(true, |c| {
-                        !c.chars().next().unwrap().is_alphanumeric() && c != "_" && c != "."
+                        !c.chars()
+                            .next()
+                            .unwrap()
+                            .is_alphanumeric()
+                            && c != "_"
+                            && c != "."
                     }) && after.map_or(true, |c| {
-                        !c.chars().next().unwrap().is_alphanumeric() && c != "_" && c != "."
+                        !c.chars()
+                            .next()
+                            .unwrap()
+                            .is_alphanumeric()
+                            && c != "_"
+                            && c != "."
                     });
                     if !is_valid_boundary {
                         continue;
@@ -426,9 +474,17 @@ impl MD034NoBareUrls {
                     };
                     let after = alt_str.get(url_end..url_end + 1);
                     let is_valid_boundary = before.map_or(true, |c| {
-                        !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                        !c.chars()
+                            .next()
+                            .unwrap()
+                            .is_alphanumeric()
+                            && c != "_"
                     }) && after.map_or(true, |c| {
-                        !c.chars().next().unwrap().is_alphanumeric() && c != "_"
+                        !c.chars()
+                            .next()
+                            .unwrap()
+                            .is_alphanumeric()
+                            && c != "_"
                     });
                     if !is_valid_boundary {
                         continue;
@@ -547,8 +603,14 @@ impl Rule for MD034NoBareUrls {
 
         // Sort warnings by byte offset in reverse order (rightmost first) to avoid offset issues
         let mut sorted_warnings = warnings.clone();
-        sorted_warnings
-            .sort_by_key(|w| std::cmp::Reverse(w.fix.as_ref().map(|f| f.range.start).unwrap_or(0)));
+        sorted_warnings.sort_by_key(|w| {
+            std::cmp::Reverse(
+                w.fix
+                    .as_ref()
+                    .map(|f| f.range.start)
+                    .unwrap_or(0),
+            )
+        });
 
         let mut result = content.to_string();
         for warning in sorted_warnings {

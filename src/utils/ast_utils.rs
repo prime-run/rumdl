@@ -36,14 +36,21 @@ impl AstCache {
         let content_hash = crate::utils::fast_hash(content);
 
         if let Some(ast) = self.cache.get(&content_hash) {
-            *self.usage_stats.entry(content_hash).or_insert(0) += 1;
+            *self
+                .usage_stats
+                .entry(content_hash)
+                .or_insert(0) += 1;
             return ast.clone();
         }
 
         // Parse the AST
         let ast = Arc::new(parse_markdown_ast(content));
-        self.cache.insert(content_hash, ast.clone());
-        *self.usage_stats.entry(content_hash).or_insert(0) += 1;
+        self.cache
+            .insert(content_hash, ast.clone());
+        *self
+            .usage_stats
+            .entry(content_hash)
+            .or_insert(0) += 1;
 
         ast
     }

@@ -89,7 +89,10 @@ impl TableUtils {
     }
 
     /// Find all table blocks in the content with optimized detection
-    pub fn find_table_blocks(content: &str, ctx: &crate::lint_context::LintContext) -> Vec<TableBlock> {
+    pub fn find_table_blocks(
+        content: &str,
+        ctx: &crate::lint_context::LintContext,
+    ) -> Vec<TableBlock> {
         let lines: Vec<&str> = content.lines().collect();
         let mut tables = Vec::new();
         let mut i = 0;

@@ -1,9 +1,9 @@
+use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
+use crate::rule_config_serde::RuleConfig;
 /// Rule MD010: No tabs
 ///
 /// See [docs/md010.md](../../docs/md010.md) for full documentation, configuration, and examples.
-use crate::utils::range_utils::{calculate_match_range, LineIndex};
-use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
-use crate::rule_config_serde::RuleConfig;
+use crate::utils::range_utils::{LineIndex, calculate_match_range};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -33,14 +33,16 @@ impl Default for MD010NoHardTabs {
 impl MD010NoHardTabs {
     pub fn new(spaces_per_tab: usize, code_blocks: bool) -> Self {
         Self {
-            config: MD010Config { spaces_per_tab, code_blocks },
+            config: MD010Config {
+                spaces_per_tab,
+                code_blocks,
+            },
         }
     }
-    
+
     pub fn from_config_struct(config: MD010Config) -> Self {
         Self { config }
     }
-
 
     // Identify lines that are part of HTML comments
     fn find_html_comment_lines(lines: &[&str]) -> Vec<bool> {
@@ -194,10 +196,7 @@ impl Rule for MD010NoHardTabs {
                 } else if tab_count == 1 {
                     "Found tab for alignment, use spaces instead".to_string()
                 } else {
-                    format!(
-                        "Found {} tabs for alignment, use spaces instead",
-                        tab_count
-                    )
+                    format!("Found {} tabs for alignment, use spaces instead", tab_count)
                 };
 
                 warnings.push(LintWarning {
@@ -209,7 +208,11 @@ impl Rule for MD010NoHardTabs {
                     message,
                     severity: Severity::Warning,
                     fix: Some(Fix {
-                        range: _line_index.line_col_to_byte_range_with_length(line_num + 1, start_pos + 1, tab_count),
+                        range: _line_index.line_col_to_byte_range_with_length(
+                            line_num + 1,
+                            start_pos + 1,
+                            tab_count,
+                        ),
                         replacement: " ".repeat(tab_count * self.config.spaces_per_tab),
                     }),
                 });
@@ -248,7 +251,7 @@ impl Rule for MD010NoHardTabs {
                 // Replace tabs with spaces
                 result.push_str(&line.replace('\t', &" ".repeat(self.config.spaces_per_tab)));
             }
-            
+
             // Add newline if not the last line without a newline
             if i < lines.len() - 1 || content.ends_with('\n') {
                 result.push('\n');
@@ -270,10 +273,13 @@ impl Rule for MD010NoHardTabs {
         let default_config = MD010Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD010Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD010Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }

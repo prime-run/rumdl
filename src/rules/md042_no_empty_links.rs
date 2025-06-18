@@ -39,28 +39,35 @@ impl Rule for MD042NoEmptyLinks {
             // For reference links, resolve the URL
             let effective_url = if link.is_reference {
                 if let Some(ref_id) = &link.reference_id {
-                    ctx.get_reference_url(ref_id).unwrap_or("").to_string()
+                    ctx.get_reference_url(ref_id)
+                        .unwrap_or("")
+                        .to_string()
                 } else {
                     String::new()
                 }
             } else {
                 link.url.clone()
             };
-            
+
             // Check for empty links
             if link.text.trim().is_empty() || effective_url.trim().is_empty() {
-                let replacement = if link.text.trim().is_empty() && effective_url.trim().is_empty() {
+                let replacement = if link.text.trim().is_empty() && effective_url.trim().is_empty()
+                {
                     "[Link text](https://example.com)".to_string()
                 } else if link.text.trim().is_empty() {
                     if link.is_reference {
-                        format!("[Link text]{}", &ctx.content[link.byte_offset + 1..link.byte_end])
+                        format!(
+                            "[Link text]{}",
+                            &ctx.content[link.byte_offset + 1..link.byte_end]
+                        )
                     } else {
                         format!("[Link text]({})", effective_url)
                     }
                 } else {
                     if link.is_reference {
                         // Keep the reference format
-                        let ref_part = &ctx.content[link.byte_offset + link.text.len() + 2..link.byte_end];
+                        let ref_part =
+                            &ctx.content[link.byte_offset + link.text.len() + 2..link.byte_end];
                         format!("[{}]{}", link.text, ref_part)
                     } else {
                         format!("[{}](https://example.com)", link.text)
@@ -123,9 +130,9 @@ impl Rule for MD042NoEmptyLinks {
                 severity: Severity::Warning,
                 fix: Some(Fix {
                     range: line_index.line_col_to_byte_range_with_length(
-                        link.line, 
-                        link.start_col, 
-                        (link.end_col + 1).saturating_sub(link.start_col)
+                        link.line,
+                        link.start_col,
+                        (link.end_col + 1).saturating_sub(link.start_col),
                     ),
                     replacement,
                 }),
@@ -147,14 +154,18 @@ impl Rule for MD042NoEmptyLinks {
         // Collect all fixes with their ranges
         let mut fixes: Vec<(std::ops::Range<usize>, String)> = warnings
             .iter()
-            .filter_map(|w| w.fix.as_ref().map(|f| (f.range.clone(), f.replacement.clone())))
+            .filter_map(|w| {
+                w.fix
+                    .as_ref()
+                    .map(|f| (f.range.clone(), f.replacement.clone()))
+            })
             .collect();
 
         // Sort fixes by position (descending) to apply from end to start
         fixes.sort_by(|a, b| b.0.start.cmp(&a.0.start));
 
         let mut result = content.to_string();
-        
+
         // Apply fixes from end to start to maintain correct positions
         for (range, replacement) in fixes {
             result.replace_range(range, &replacement);

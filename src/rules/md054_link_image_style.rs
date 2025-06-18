@@ -84,7 +84,6 @@ pub struct MD054LinkImageStyle {
     config: MD054Config,
 }
 
-
 impl MD054LinkImageStyle {
     pub fn new(
         autolink: bool,
@@ -105,7 +104,7 @@ impl MD054LinkImageStyle {
             },
         }
     }
-    
+
     pub fn from_config_struct(config: MD054Config) -> Self {
         Self { config }
     }
@@ -186,7 +185,8 @@ impl Rule for MD054LinkImageStyle {
                     let match_start_char = line[..match_start_byte].chars().count();
                     let match_end_char = line[..match_end_byte].chars().count();
 
-                    if !structure.is_in_code_span(line_num + 1, match_start_char + 1) && !self.config.full
+                    if !structure.is_in_code_span(line_num + 1, match_start_char + 1)
+                        && !self.config.full
                     {
                         let match_len = match_end_char - match_start_char;
                         let (start_line, start_col, end_line, end_col) =

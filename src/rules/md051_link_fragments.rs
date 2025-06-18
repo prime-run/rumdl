@@ -1,9 +1,9 @@
 use crate::rule::{LintError, LintResult, LintWarning, Rule, Severity};
 use crate::utils::document_structure::{DocumentStructure, DocumentStructureExtensions};
 use crate::utils::regex_cache::*;
-use std::collections::HashSet;
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::collections::HashSet;
 
 lazy_static! {
     // Pre-compiled optimized patterns for quick checks
@@ -34,7 +34,6 @@ impl MD051LinkFragments {
     pub fn new() -> Self {
         Self
     }
-
 
     /// Extract headings from cached LintContext information
     fn extract_headings_from_context(
@@ -143,7 +142,10 @@ impl MD051LinkFragments {
                     return content.as_str().to_string();
                 }
             }
-            caps.get(0).unwrap().as_str().to_string()
+            caps.get(0)
+                .unwrap()
+                .as_str()
+                .to_string()
         });
 
         // Remove any remaining backticks only if they exist
@@ -154,34 +156,76 @@ impl MD051LinkFragments {
         }
     }
 
-        /// Check if a path has a file extension indicating it's a file reference
+    /// Check if a path has a file extension indicating it's a file reference
     fn has_file_extension(path: &str) -> bool {
         // First, strip query parameters and other URL components
         // Split on ? to remove query parameters, and on & to handle other URL components
-        let clean_path = path.split('?').next().unwrap_or(path)
-                            .split('&').next().unwrap_or(path);
+        let clean_path = path
+            .split('?')
+            .next()
+            .unwrap_or(path)
+            .split('&')
+            .next()
+            .unwrap_or(path);
 
         // Common file extensions that indicate cross-file references
         let file_extensions = [
             // Markdown and documentation formats
-            ".md", ".markdown", ".mdown", ".mkdn", ".mdx", ".md2", ".mdtext",
-            ".rst", ".txt", ".adoc", ".asciidoc", ".org",
-
+            ".md",
+            ".markdown",
+            ".mdown",
+            ".mkdn",
+            ".mdx",
+            ".md2",
+            ".mdtext",
+            ".rst",
+            ".txt",
+            ".adoc",
+            ".asciidoc",
+            ".org",
             // Web formats
-            ".html", ".htm", ".xhtml", ".xml", ".svg",
-
+            ".html",
+            ".htm",
+            ".xhtml",
+            ".xml",
+            ".svg",
             // Data and config formats
-            ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf",
-
+            ".json",
+            ".yaml",
+            ".yml",
+            ".toml",
+            ".ini",
+            ".cfg",
+            ".conf",
             // Office documents
-            ".pdf", ".doc", ".docx", ".odt", ".rtf",
-
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".odt",
+            ".rtf",
             // Programming and script files (often contain documentation)
-            ".py", ".js", ".ts", ".rs", ".go", ".java", ".cpp", ".c", ".h",
-            ".sh", ".bash", ".zsh", ".fish", ".ps1", ".bat", ".cmd",
-
+            ".py",
+            ".js",
+            ".ts",
+            ".rs",
+            ".go",
+            ".java",
+            ".cpp",
+            ".c",
+            ".h",
+            ".sh",
+            ".bash",
+            ".zsh",
+            ".fish",
+            ".ps1",
+            ".bat",
+            ".cmd",
             // Other common file types that might have fragments
-            ".tex", ".bib", ".csv", ".tsv", ".log"
+            ".tex",
+            ".bib",
+            ".csv",
+            ".tsv",
+            ".log",
         ];
 
         // Case-insensitive extension matching
@@ -192,7 +236,7 @@ impl MD051LinkFragments {
             }
         }
 
-                        // Also check for any extension pattern (dot followed by 2-10 alphanumeric characters)
+        // Also check for any extension pattern (dot followed by 2-10 alphanumeric characters)
         // This catches extensions not in our known list like .backup, .tmp, .orig, etc.
         if let Some(last_dot) = path_lower.rfind('.') {
             // Special case: if path starts with a dot, it might be a hidden file
@@ -208,8 +252,12 @@ impl MD051LinkFragments {
 
             let potential_ext = &path_lower[last_dot + 1..];
             // Valid extension: 2-10 characters, alphanumeric (allows for longer extensions like .backup)
-            if potential_ext.len() >= 2 && potential_ext.len() <= 10 &&
-               potential_ext.chars().all(|c| c.is_ascii_alphanumeric()) {
+            if potential_ext.len() >= 2
+                && potential_ext.len() <= 10
+                && potential_ext
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric())
+            {
                 return true;
             }
         }
@@ -300,7 +348,8 @@ impl Rule for MD051LinkFragments {
             let url = if link.is_reference {
                 // Resolve reference URL
                 if let Some(ref_id) = &link.reference_id {
-                    ctx.get_reference_url(ref_id).unwrap_or("")
+                    ctx.get_reference_url(ref_id)
+                        .unwrap_or("")
                 } else {
                     ""
                 }
@@ -343,7 +392,10 @@ impl Rule for MD051LinkFragments {
                 }
 
                 // Check if we're exiting a TOC section (next heading)
-                if in_toc_section && line_info.content.starts_with('#') && !TOC_SECTION_START.is_match(&line_info.content) {
+                if in_toc_section
+                    && line_info.content.starts_with('#')
+                    && !TOC_SECTION_START.is_match(&line_info.content)
+                {
                     in_toc_section = false;
                 }
 
@@ -396,7 +448,10 @@ impl DocumentStructureExtensions for MD051LinkFragments {
         _doc_structure: &DocumentStructure,
     ) -> bool {
         // This rule is only relevant if there are both headings and links
-        let has_headings = ctx.lines.iter().any(|line| line.heading.is_some());
+        let has_headings = ctx
+            .lines
+            .iter()
+            .any(|line| line.heading.is_some());
         let has_links = ctx.content.contains('[') && ctx.content.contains(']');
         has_headings && has_links
     }

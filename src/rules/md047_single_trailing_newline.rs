@@ -59,7 +59,12 @@ impl Rule for MD047SingleTrailingNewline {
                 }
             } else {
                 // For missing newline, highlight the end of the last line
-                (last_line_num, last_line_content.len() + 1, last_line_num, last_line_content.len() + 1)
+                (
+                    last_line_num,
+                    last_line_content.len() + 1,
+                    last_line_num,
+                    last_line_content.len() + 1,
+                )
             };
 
             warnings.push(LintWarning {
@@ -73,7 +78,8 @@ impl Rule for MD047SingleTrailingNewline {
                 fix: Some(Fix {
                     range: if has_trailing_newline {
                         // For multiple newlines, replace from the position to the end of file
-                        let start_range = line_index.line_col_to_byte_range_with_length(start_line, start_col, 0);
+                        let start_range =
+                            line_index.line_col_to_byte_range_with_length(start_line, start_col, 0);
                         start_range.start..content.len()
                     } else {
                         // For missing newline, insert at the end of the file

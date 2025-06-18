@@ -22,7 +22,7 @@ pub mod python;
 pub use rules::heading_utils::{Heading, HeadingStyle};
 pub use rules::*;
 
-pub use crate::lint_context::{LintContext, LineInfo, ListItemInfo, BareUrl};
+pub use crate::lint_context::{BareUrl, LineInfo, LintContext, ListItemInfo};
 use crate::rule::{LintResult, Rule, RuleCategory};
 use crate::utils::document_structure::DocumentStructure;
 use std::time::Instant;
@@ -59,7 +59,10 @@ impl ContentCharacteristics {
                 has_atx_heading = true;
             }
             if !has_setext_heading
-                && (trimmed.chars().all(|c| c == '=' || c == '-') && trimmed.len() > 1)
+                && (trimmed
+                    .chars()
+                    .all(|c| c == '=' || c == '-')
+                    && trimmed.len() > 1)
             {
                 has_setext_heading = true;
             }
@@ -71,12 +74,20 @@ impl ContentCharacteristics {
                 chars.has_lists = true;
             }
             if !chars.has_lists
-                && line.chars().next().map_or(false, |c| c.is_ascii_digit())
+                && line
+                    .chars()
+                    .next()
+                    .map_or(false, |c| c.is_ascii_digit())
                 && line.contains(". ")
             {
                 chars.has_lists = true;
             }
-            if !chars.has_links && (line.contains('[') || line.contains("http://") || line.contains("https://") || line.contains("ftp://")) {
+            if !chars.has_links
+                && (line.contains('[')
+                    || line.contains("http://")
+                    || line.contains("https://")
+                    || line.contains("ftp://"))
+            {
                 chars.has_links = true;
             }
             if !chars.has_images && line.contains("![") {

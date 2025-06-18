@@ -49,15 +49,18 @@ pub fn warning_to_diagnostic(warning: &crate::rule::LintWarning) -> Diagnostic {
     };
 
     // Create clickable link to rule documentation
-    let code_description = warning.rule_name.as_ref().and_then(|rule_name| {
-        // Create a link to the rule documentation
-        Url::parse(&format!(
-            "https://github.com/rvben/rumdl/blob/main/docs/{}.md",
-            rule_name.to_lowercase()
-        ))
-        .ok()
-        .map(|href| CodeDescription { href })
-    });
+    let code_description = warning
+        .rule_name
+        .as_ref()
+        .and_then(|rule_name| {
+            // Create a link to the rule documentation
+            Url::parse(&format!(
+                "https://github.com/rvben/rumdl/blob/main/docs/{}.md",
+                rule_name.to_lowercase()
+            ))
+            .ok()
+            .map(|href| CodeDescription { href })
+        });
 
     Diagnostic {
         range: Range {
@@ -82,10 +85,10 @@ fn byte_range_to_lsp_range(text: &str, byte_range: std::ops::Range<usize>) -> Op
     let mut line = 0u32;
     let mut character = 0u32;
     let mut byte_pos = 0;
-    
+
     let mut start_pos = None;
     let mut end_pos = None;
-    
+
     for ch in text.chars() {
         if byte_pos == byte_range.start {
             start_pos = Some(Position { line, character });
@@ -94,22 +97,22 @@ fn byte_range_to_lsp_range(text: &str, byte_range: std::ops::Range<usize>) -> Op
             end_pos = Some(Position { line, character });
             break;
         }
-        
+
         if ch == '\n' {
             line += 1;
             character = 0;
         } else {
             character += 1;
         }
-        
+
         byte_pos += ch.len_utf8();
     }
-    
+
     // Handle end position at EOF
     if byte_pos == byte_range.end && end_pos.is_none() {
         end_pos = Some(Position { line, character });
     }
-    
+
     match (start_pos, end_pos) {
         (Some(start), Some(end)) => Some(Range { start, end }),
         _ => None,
@@ -117,7 +120,11 @@ fn byte_range_to_lsp_range(text: &str, byte_range: std::ops::Range<usize>) -> Op
 }
 
 /// Create a code action from a rumdl warning with fix
-pub fn warning_to_code_action(warning: &crate::rule::LintWarning, uri: &Url, document_text: &str) -> Option<CodeAction> {
+pub fn warning_to_code_action(
+    warning: &crate::rule::LintWarning,
+    uri: &Url,
+    document_text: &str,
+) -> Option<CodeAction> {
     if let Some(fix) = &warning.fix {
         // Convert fix range (byte offsets) to LSP positions
         let range = byte_range_to_lsp_range(document_text, fix.range.clone())?;

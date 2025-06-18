@@ -27,7 +27,10 @@ impl VsCodeExtension {
 
     /// Check if a command exists and works
     fn command_exists(cmd: &str) -> bool {
-        Command::new("which").arg(cmd).output().is_ok()
+        Command::new("which")
+            .arg(cmd)
+            .output()
+            .is_ok()
             && Command::new(cmd)
                 .arg("--version")
                 .output()
@@ -53,13 +56,13 @@ impl VsCodeExtension {
 
         // Fallback to finding the first available command
         let commands = ["code", "cursor", "windsurf"];
-        
+
         for cmd in &commands {
             if Self::command_exists(cmd) {
                 return Ok(cmd.to_string());
             }
         }
-        
+
         Err(format!(
             "VS Code (or compatible editor) not found. Please ensure one of the following commands is available: {}",
             commands.join(", ")
@@ -73,7 +76,7 @@ impl VsCodeExtension {
             ("cursor", "Cursor"),
             ("windsurf", "Windsurf"),
         ];
-        
+
         editors
             .into_iter()
             .filter(|(cmd, _)| Self::command_exists(cmd))
@@ -114,25 +117,31 @@ impl VsCodeExtension {
 
     pub fn install(&self, force: bool) -> Result<(), String> {
         if !force && self.is_installed()? {
-            println!("{}", "✓ Rumdl VS Code extension is already installed".green());
+            println!(
+                "{}",
+                "✓ Rumdl VS Code extension is already installed".green()
+            );
             return Ok(());
         }
 
         println!("Installing {} extension...", EXTENSION_NAME.cyan());
-        
+
         let output = Command::new(&self.code_command)
             .args(&["--install-extension", EXTENSION_ID])
             .output()
             .map_err(|e| format!("Failed to run VS Code command: {}", e))?;
 
         if output.status.success() {
-            println!("{}", "✓ Successfully installed Rumdl VS Code extension!".green());
-            
+            println!(
+                "{}",
+                "✓ Successfully installed Rumdl VS Code extension!".green()
+            );
+
             // Try to get the installed version
             if let Ok(version) = self.get_installed_version() {
                 println!("  Installed version: {}", version.cyan());
             }
-            
+
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -155,7 +164,9 @@ impl VsCodeExtension {
 
         if output.status.success() {
             let extensions = String::from_utf8_lossy(&output.stdout);
-            Ok(extensions.lines().any(|line| line.trim() == EXTENSION_ID))
+            Ok(extensions
+                .lines()
+                .any(|line| line.trim() == EXTENSION_ID))
         } else {
             Err("Failed to check installed extensions".to_string())
         }
@@ -169,7 +180,10 @@ impl VsCodeExtension {
 
         if output.status.success() {
             let extensions = String::from_utf8_lossy(&output.stdout);
-            if let Some(line) = extensions.lines().find(|line| line.starts_with(EXTENSION_ID)) {
+            if let Some(line) = extensions
+                .lines()
+                .find(|line| line.starts_with(EXTENSION_ID))
+            {
                 // Extract version from format "rvben.rumdl@0.0.10"
                 if let Some(version) = line.split('@').nth(1) {
                     return Ok(version.to_string());
@@ -182,7 +196,7 @@ impl VsCodeExtension {
     pub fn show_status(&self) -> Result<(), String> {
         if self.is_installed()? {
             println!("{}", "✓ Rumdl VS Code extension is installed".green());
-            
+
             // Try to get version info
             if let Ok(version) = self.get_installed_version() {
                 println!("  Version: {}", version.dimmed());
@@ -197,7 +211,7 @@ impl VsCodeExtension {
 
 pub fn handle_vscode_command(force: bool, status: bool) -> Result<(), String> {
     let vscode = VsCodeExtension::new()?;
-    
+
     if status {
         vscode.show_status()
     } else {

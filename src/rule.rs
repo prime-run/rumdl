@@ -223,7 +223,10 @@ pub fn parse_disable_comment(line: &str) -> Option<Vec<&str>> {
         let after_prefix = &line[start + "<!-- rumdl-disable".len()..];
 
         // Global disable: <!-- rumdl-disable -->
-        if after_prefix.trim_start().starts_with("-->") {
+        if after_prefix
+            .trim_start()
+            .starts_with("-->")
+        {
             return Some(Vec::new()); // Empty vec means all rules
         }
 
@@ -242,7 +245,10 @@ pub fn parse_disable_comment(line: &str) -> Option<Vec<&str>> {
         let after_prefix = &line[start + "<!-- markdownlint-disable".len()..];
 
         // Global disable: <!-- markdownlint-disable -->
-        if after_prefix.trim_start().starts_with("-->") {
+        if after_prefix
+            .trim_start()
+            .starts_with("-->")
+        {
             return Some(Vec::new()); // Empty vec means all rules
         }
 
@@ -266,7 +272,10 @@ pub fn parse_enable_comment(line: &str) -> Option<Vec<&str>> {
         let after_prefix = &line[start + "<!-- rumdl-enable".len()..];
 
         // Global enable: <!-- rumdl-enable -->
-        if after_prefix.trim_start().starts_with("-->") {
+        if after_prefix
+            .trim_start()
+            .starts_with("-->")
+        {
             return Some(Vec::new()); // Empty vec means all rules
         }
 
@@ -285,7 +294,10 @@ pub fn parse_enable_comment(line: &str) -> Option<Vec<&str>> {
         let after_prefix = &line[start + "<!-- markdownlint-enable".len()..];
 
         // Global enable: <!-- markdownlint-enable -->
-        if after_prefix.trim_start().starts_with("-->") {
+        if after_prefix
+            .trim_start()
+            .starts_with("-->")
+        {
             return Some(Vec::new()); // Empty vec means all rules
         }
 

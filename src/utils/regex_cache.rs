@@ -51,13 +51,20 @@ impl RegexCache {
     /// Get or compile a regex pattern
     pub fn get_regex(&mut self, pattern: &str) -> Result<Arc<Regex>, regex::Error> {
         if let Some(regex) = self.cache.get(pattern) {
-            *self.usage_stats.entry(pattern.to_string()).or_insert(0) += 1;
+            *self
+                .usage_stats
+                .entry(pattern.to_string())
+                .or_insert(0) += 1;
             return Ok(regex.clone());
         }
 
         let regex = Arc::new(Regex::new(pattern)?);
-        self.cache.insert(pattern.to_string(), regex.clone());
-        *self.usage_stats.entry(pattern.to_string()).or_insert(0) += 1;
+        self.cache
+            .insert(pattern.to_string(), regex.clone());
+        *self
+            .usage_stats
+            .entry(pattern.to_string())
+            .or_insert(0) += 1;
         Ok(regex)
     }
 
@@ -67,7 +74,10 @@ impl RegexCache {
         pattern: &str,
     ) -> Result<Arc<FancyRegex>, Box<fancy_regex::Error>> {
         if let Some(regex) = self.fancy_cache.get(pattern) {
-            *self.usage_stats.entry(pattern.to_string()).or_insert(0) += 1;
+            *self
+                .usage_stats
+                .entry(pattern.to_string())
+                .or_insert(0) += 1;
             return Ok(regex.clone());
         }
 
@@ -139,9 +149,7 @@ macro_rules! regex_lazy {
 /// Macro for getting regex from global cache
 #[macro_export]
 macro_rules! regex_cached {
-    ($pattern:expr) => {{
-        $crate::utils::regex_cache::get_cached_regex($pattern).expect("Failed to compile regex")
-    }};
+    ($pattern:expr) => {{ $crate::utils::regex_cache::get_cached_regex($pattern).expect("Failed to compile regex") }};
 }
 
 /// Macro for getting fancy regex from global cache

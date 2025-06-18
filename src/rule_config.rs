@@ -1,11 +1,10 @@
 /// Configuration helper trait and utilities for rules
-/// 
+///
 /// This module provides utilities to reduce boilerplate in rule configuration
-
 use toml::Value;
 
 /// Helper macro to implement default_config_section for rules
-/// 
+///
 /// Usage:
 /// ```ignore
 /// fn default_config_section(&self) -> Option<(String, toml::Value)> {
@@ -41,5 +40,10 @@ pub fn toml_string<T: Into<String>>(s: T) -> Value {
 }
 
 pub fn toml_array<T: Into<String>>(items: Vec<T>) -> Value {
-    Value::Array(items.into_iter().map(|s| Value::String(s.into())).collect())
+    Value::Array(
+        items
+            .into_iter()
+            .map(|s| Value::String(s.into()))
+            .collect(),
+    )
 }

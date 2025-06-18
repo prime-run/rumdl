@@ -4,9 +4,9 @@
 //! See [docs/md003.md](../../docs/md003.md) for full documentation, configuration, and examples.
 
 use crate::rule::{LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
+use crate::rule_config_serde::RuleConfig;
 use crate::rules::heading_utils::HeadingStyle;
 use crate::utils::range_utils::calculate_heading_range;
-use crate::rule_config_serde::RuleConfig;
 use lazy_static::lazy_static;
 use regex::Regex;
 use toml;
@@ -40,11 +40,10 @@ impl MD003HeadingStyle {
             config: MD003Config { style },
         }
     }
-    
+
     pub fn from_config_struct(config: MD003Config) -> Self {
         Self { config }
     }
-
 
     /// Check if we should use consistent mode (detect first style)
     fn is_consistent_mode(&self) -> bool {
@@ -53,10 +52,7 @@ impl MD003HeadingStyle {
     }
 
     /// Gets the target heading style based on configuration and document content
-    fn get_target_style(
-        &self,
-        ctx: &crate::lint_context::LintContext,
-    ) -> HeadingStyle {
+    fn get_target_style(&self, ctx: &crate::lint_context::LintContext) -> HeadingStyle {
         if !self.is_consistent_mode() {
             return self.config.style;
         }
@@ -78,7 +74,7 @@ impl MD003HeadingStyle {
                 };
             }
         }
-        
+
         // Default to ATX if no headings found
         HeadingStyle::Atx
     }
@@ -98,7 +94,7 @@ impl Rule for MD003HeadingStyle {
 
         // Get the target style using cached heading information
         let target_style = self.get_target_style(ctx);
-        
+
         // Create LineIndex once outside the loop
         let line_index = crate::utils::range_utils::LineIndex::new(ctx.content.to_string());
 
@@ -106,7 +102,7 @@ impl Rule for MD003HeadingStyle {
         for (line_num, line_info) in ctx.lines.iter().enumerate() {
             if let Some(heading) = &line_info.heading {
                 let level = heading.level;
-                
+
                 // Map the cached heading style to the rule's HeadingStyle
                 let current_style = match heading.style {
                     crate::lint_context::HeadingStyle::ATX => {
@@ -122,11 +118,13 @@ impl Rule for MD003HeadingStyle {
 
                 // Determine expected style based on level and target
                 let expected_style = if level > 2
-                    && (target_style == HeadingStyle::Setext1 || target_style == HeadingStyle::Setext2)
+                    && (target_style == HeadingStyle::Setext1
+                        || target_style == HeadingStyle::Setext2)
                 {
                     // Setext only supports levels 1-2, so levels 3+ must be ATX
                     HeadingStyle::Atx
-                } else if (target_style == HeadingStyle::Setext1 || target_style == HeadingStyle::Setext2)
+                } else if (target_style == HeadingStyle::Setext1
+                    || target_style == HeadingStyle::Setext2)
                     && level <= 2
                 {
                     // For Setext target, use appropriate style based on level
@@ -152,7 +150,8 @@ impl Rule for MD003HeadingStyle {
                         );
 
                         // Add indentation
-                        let final_heading = format!("{}{}", " ".repeat(line_info.indent), converted_heading);
+                        let final_heading =
+                            format!("{}{}", " ".repeat(line_info.indent), converted_heading);
 
                         // Calculate the correct range for the heading
                         let range = line_index.line_content_range(line_num + 1);
@@ -231,7 +230,6 @@ impl Rule for MD003HeadingStyle {
         Ok(result)
     }
 
-
     fn category(&self) -> RuleCategory {
         RuleCategory::Heading
     }
@@ -253,10 +251,13 @@ impl Rule for MD003HeadingStyle {
         let default_config = MD003Config::default();
         let json_value = serde_json::to_value(&default_config).ok()?;
         let toml_value = crate::rule_config_serde::json_to_toml_value(&json_value)?;
-        
+
         if let toml::Value::Table(table) = toml_value {
             if !table.is_empty() {
-                Some((MD003Config::RULE_NAME.to_string(), toml::Value::Table(table)))
+                Some((
+                    MD003Config::RULE_NAME.to_string(),
+                    toml::Value::Table(table),
+                ))
             } else {
                 None
             }
@@ -273,7 +274,6 @@ impl Rule for MD003HeadingStyle {
         Box::new(Self::from_config_struct(rule_config))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

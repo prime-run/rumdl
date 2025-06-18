@@ -43,7 +43,9 @@ impl MD011NoReversedLinks {
                 if cap.get(3).is_some() {
                     // Found reversed link syntax (URL)[text]
                     // cap[3] contains (URL) with parentheses, cap[4] contains text
-                    let url = cap[3].trim_matches('(').trim_matches(')');
+                    let url = cap[3]
+                        .trim_matches('(')
+                        .trim_matches(')');
                     let text = &cap[4];
                     let start = line_start + cap.get(0).unwrap().start();
                     results.push((
@@ -74,9 +76,10 @@ impl MD011NoReversedLinks {
                 let end = start + len;
 
                 // Skip if this range overlaps with already processed ranges
-                if processed_ranges.iter().any(|(proc_start, proc_end)|
-                    (start < *proc_end && end > *proc_start)
-                ) {
+                if processed_ranges
+                    .iter()
+                    .any(|(proc_start, proc_end)| (start < *proc_end && end > *proc_start))
+                {
                     continue;
                 }
 
@@ -95,30 +98,39 @@ impl MD011NoReversedLinks {
     }
 
     /// Extract URL and text from regex match based on the issue type
-    fn extract_url_and_text_from_match(&self, cap: &regex::Captures, issue_type: &str) -> Option<(String, String)> {
+    fn extract_url_and_text_from_match(
+        &self,
+        cap: &regex::Captures,
+        issue_type: &str,
+    ) -> Option<(String, String)> {
         match issue_type {
             "missing closing bracket" => {
                 // (URL)[text -> cap[1] = URL, cap[2] = incomplete text
                 Some((cap[1].to_string(), format!("{}]", &cap[2])))
-            },
+            }
             "missing closing parenthesis" => {
                 // [text](URL -> cap[1] = text, cap[2] = incomplete URL
                 Some((format!("{})", &cap[2]), cap[1].to_string()))
-            },
+            }
             "wrong bracket type (curly instead of parentheses)" => {
                 // {URL}[text] or [text]{URL} -> cap[1] and cap[2]
-                if cap.get(0).unwrap().as_str().starts_with('{') {
+                if cap
+                    .get(0)
+                    .unwrap()
+                    .as_str()
+                    .starts_with('{')
+                {
                     // {URL}[text] -> swap and fix brackets
                     Some((cap[1].to_string(), cap[2].to_string()))
                 } else {
                     // [text]{URL} -> already in correct order, fix brackets
                     Some((cap[2].to_string(), cap[1].to_string()))
                 }
-            },
+            }
             "URL and text appear to be swapped" => {
                 // [URL](text) -> cap[1] = URL, cap[2] = text, need to swap
                 Some((cap[1].to_string(), cap[2].to_string()))
-            },
+            }
             _ => None,
         }
     }
@@ -127,19 +139,20 @@ impl MD011NoReversedLinks {
     fn looks_like_link_attempt(&self, url: &str, text: &str) -> bool {
         // URL should look like a URL
         let url_indicators = [
-            "http://", "https://", "www.", "ftp://",
-            ".com", ".org", ".net", ".edu", ".gov", ".io", ".co"
+            "http://", "https://", "www.", "ftp://", ".com", ".org", ".net", ".edu", ".gov", ".io",
+            ".co",
         ];
 
-        let has_url_indicator = url_indicators.iter().any(|indicator|
-            url.to_lowercase().contains(indicator)
-        );
+        let has_url_indicator = url_indicators
+            .iter()
+            .any(|indicator| url.to_lowercase().contains(indicator));
 
         // Text should be reasonable length and not look like a URL
-        let text_looks_reasonable = text.len() >= 3 && text.len() <= 50
-            && !url_indicators.iter().any(|indicator|
-                text.to_lowercase().contains(indicator)
-            )
+        let text_looks_reasonable = text.len() >= 3
+            && text.len() <= 50
+            && !url_indicators
+                .iter()
+                .any(|indicator| text.to_lowercase().contains(indicator))
             && !text.to_lowercase().starts_with("http")
             && text.chars().any(|c| c.is_alphabetic()); // Must contain at least one letter
 
@@ -151,7 +164,6 @@ impl MD011NoReversedLinks {
         // Both URL and text should look reasonable for this to be a link attempt
         has_url_indicator && text_looks_reasonable && url_looks_reasonable
     }
-
 }
 
 impl Default for MD011NoReversedLinks {
@@ -200,7 +212,11 @@ impl Rule for MD011NoReversedLinks {
                     fix: Some(Fix {
                         range: {
                             // Calculate proper byte range using line offsets and match position
-                            let line_start_byte = ctx.line_offsets.get(line_num).copied().unwrap_or(0);
+                            let line_start_byte = ctx
+                                .line_offsets
+                                .get(line_num)
+                                .copied()
+                                .unwrap_or(0);
                             let match_start_byte = line_start_byte + match_obj.start();
                             let match_end_byte = match_start_byte + match_obj.len();
                             match_start_byte..match_end_byte
@@ -228,7 +244,11 @@ impl Rule for MD011NoReversedLinks {
                     fix: Some(Fix {
                         range: {
                             // Calculate proper byte range using line offsets and match position
-                            let line_start_byte = ctx.line_offsets.get(line_num).copied().unwrap_or(0);
+                            let line_start_byte = ctx
+                                .line_offsets
+                                .get(line_num)
+                                .copied()
+                                .unwrap_or(0);
                             let match_start_byte = line_start_byte + start;
                             let match_end_byte = match_start_byte + len;
                             match_start_byte..match_end_byte
@@ -237,7 +257,7 @@ impl Rule for MD011NoReversedLinks {
                     }),
                 });
             }
-            
+
             byte_pos += line.len() + 1; // Update byte position for next line
         }
 
@@ -311,7 +331,11 @@ mod tests {
         // This should detect the reversed syntax
         let result = rule.check(&ctx).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0].message.contains("Reversed link syntax"));
+        assert!(
+            result[0]
+                .message
+                .contains("Reversed link syntax")
+        );
 
         // Verify the fix produces correct output
         let fix = result[0].fix.as_ref().unwrap();
@@ -330,8 +354,22 @@ mod tests {
         assert_eq!(result.len(), 2);
 
         // Verify both fixes are correct
-        assert_eq!(result[0].fix.as_ref().unwrap().replacement, "[Example](https://example.com)");
-        assert_eq!(result[1].fix.as_ref().unwrap().replacement, "[Test Site](https://test.com)");
+        assert_eq!(
+            result[0]
+                .fix
+                .as_ref()
+                .unwrap()
+                .replacement,
+            "[Example](https://example.com)"
+        );
+        assert_eq!(
+            result[1]
+                .fix
+                .as_ref()
+                .unwrap()
+                .replacement,
+            "[Test Site](https://test.com)"
+        );
     }
 
     #[test]
@@ -339,7 +377,8 @@ mod tests {
         // Test that normal link syntax is not flagged
         let rule = MD011NoReversedLinks;
 
-        let content = "This is a normal [link](https://example.com) and another [link](https://test.com).";
+        let content =
+            "This is a normal [link](https://example.com) and another [link](https://test.com).";
         let ctx = LintContext::new(content);
 
         let result = rule.check(&ctx).unwrap();
@@ -368,7 +407,14 @@ mod tests {
             let ctx = LintContext::new(test_text);
             let result = rule.check(&ctx).unwrap();
             if !result.is_empty() {
-                println!("Rule fix produces: {}", result[0].fix.as_ref().unwrap().replacement);
+                println!(
+                    "Rule fix produces: {}",
+                    result[0]
+                        .fix
+                        .as_ref()
+                        .unwrap()
+                        .replacement
+                );
             }
         }
     }
@@ -382,14 +428,22 @@ mod tests {
         let ctx = LintContext::new(content);
         let result = rule.check(&ctx).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0].message.contains("Malformed link syntax"));
+        assert!(
+            result[0]
+                .message
+                .contains("Malformed link syntax")
+        );
 
         // Test URL and text swapped
         let content = "Visit [https://example.com](Click Here).";
         let ctx = LintContext::new(content);
         let result = rule.check(&ctx).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0].message.contains("Malformed link syntax"));
+        assert!(
+            result[0]
+                .message
+                .contains("Malformed link syntax")
+        );
 
         // Test that valid links are not flagged
         let content = "This is a [normal link](https://example.com).";
@@ -470,13 +524,17 @@ static ref TRAILING_PUNCTUATION: Regex = Regex::new(r"(?m)[.!?]+\s*$").unwrap();
 ```
 
 But this (https://example.com)[reversed link] should be flagged."#;
-        
+
         let ctx = LintContext::new(content);
         let result = rule.check(&ctx).unwrap();
-        
+
         // Should only flag the reversed link outside the code block
         assert_eq!(result.len(), 1);
-        assert!(result[0].message.contains("Reversed link syntax"));
+        assert!(
+            result[0]
+                .message
+                .contains("Reversed link syntax")
+        );
         assert_eq!(result[0].line, 8); // The line with the actual reversed link
     }
 }

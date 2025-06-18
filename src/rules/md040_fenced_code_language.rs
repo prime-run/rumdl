@@ -1,8 +1,6 @@
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, RuleCategory, Severity};
-use crate::utils::document_structure::{
-    DocumentStructure, DocumentStructureExtensions,
-};
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::document_structure::{DocumentStructure, DocumentStructureExtensions};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 
 /// Rule MD040: Fenced code blocks should have a language
 ///
@@ -55,14 +53,20 @@ impl Rule for MD040FencedCodeLanguage {
 
             // Determine fence marker if this is a fence line
             let fence_marker = if trimmed.starts_with("```") {
-                let backtick_count = trimmed.chars().take_while(|&c| c == '`').count();
+                let backtick_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '`')
+                    .count();
                 if backtick_count >= 3 {
                     Some("`".repeat(backtick_count))
                 } else {
                     None
                 }
             } else if trimmed.starts_with("~~~") {
-                let tilde_count = trimmed.chars().take_while(|&c| c == '~').count();
+                let tilde_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '~')
+                    .count();
                 if tilde_count >= 3 {
                     Some("~".repeat(tilde_count))
                 } else {
@@ -72,16 +76,19 @@ impl Rule for MD040FencedCodeLanguage {
                 None
             };
 
-                        if let Some(fence_marker) = fence_marker {
+            if let Some(fence_marker) = fence_marker {
                 if in_code_block {
                     // We're inside a code block, check if this closes it
                     if let Some(ref current_marker) = current_fence_marker {
                         let current_indent = line.len() - line.trim_start().len();
                         // Only close if the fence marker exactly matches the opening marker AND has no content after
                         // AND the indentation is not greater than the opening fence
-                        if fence_marker == *current_marker &&
-                           trimmed[current_marker.len()..].trim().is_empty() &&
-                           current_indent <= opening_fence_indent {
+                        if fence_marker == *current_marker
+                            && trimmed[current_marker.len()..]
+                                .trim()
+                                .is_empty()
+                            && current_indent <= opening_fence_indent
+                        {
                             // This closes the current code block
                             in_code_block = false;
                             current_fence_marker = None;
@@ -104,15 +111,18 @@ impl Rule for MD040FencedCodeLanguage {
                             column: start_col,
                             end_line,
                             end_column: end_col,
-                            message: "Code block (```) missing language"
-                                .to_string(),
+                            message: "Code block (```) missing language".to_string(),
                             severity: Severity::Warning,
                             fix: Some(Fix {
                                 range: {
                                     // Replace just the fence marker with fence+language
                                     let trimmed_start = line.len() - line.trim_start().len();
                                     let fence_len = fence_marker.len();
-                                    let line_start_byte = ctx.line_offsets.get(i).copied().unwrap_or(0);
+                                    let line_start_byte = ctx
+                                        .line_offsets
+                                        .get(i)
+                                        .copied()
+                                        .unwrap_or(0);
                                     let fence_start_byte = line_start_byte + trimmed_start;
                                     let fence_end_byte = fence_start_byte + fence_len;
                                     fence_start_byte..fence_end_byte
@@ -177,11 +187,26 @@ impl Rule for MD040FencedCodeLanguage {
                 // Check for list markers with sufficient indentation
                 if line.len() - line.trim_start().len() >= 2 {
                     let after_indent = line.trim_start();
-                    if after_indent.starts_with("- ") || after_indent.starts_with("* ") ||
-                       after_indent.starts_with("+ ") ||
-                       (after_indent.len() > 2 && after_indent.chars().nth(0).unwrap_or(' ').is_ascii_digit() &&
-                        after_indent.chars().nth(1).unwrap_or(' ') == '.' &&
-                        after_indent.chars().nth(2).unwrap_or(' ') == ' ') {
+                    if after_indent.starts_with("- ")
+                        || after_indent.starts_with("* ")
+                        || after_indent.starts_with("+ ")
+                        || (after_indent.len() > 2
+                            && after_indent
+                                .chars()
+                                .nth(0)
+                                .unwrap_or(' ')
+                                .is_ascii_digit()
+                            && after_indent
+                                .chars()
+                                .nth(1)
+                                .unwrap_or(' ')
+                                == '.'
+                            && after_indent
+                                .chars()
+                                .nth(2)
+                                .unwrap_or(' ')
+                                == ' ')
+                    {
                         return true;
                     }
                 }
@@ -221,14 +246,20 @@ impl Rule for MD040FencedCodeLanguage {
 
             // Determine fence marker if this is a fence line
             let fence_marker = if trimmed.starts_with("```") {
-                let backtick_count = trimmed.chars().take_while(|&c| c == '`').count();
+                let backtick_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '`')
+                    .count();
                 if backtick_count >= 3 {
                     Some("`".repeat(backtick_count))
                 } else {
                     None
                 }
             } else if trimmed.starts_with("~~~") {
-                let tilde_count = trimmed.chars().take_while(|&c| c == '~').count();
+                let tilde_count = trimmed
+                    .chars()
+                    .take_while(|&c| c == '~')
+                    .count();
                 if tilde_count >= 3 {
                     Some("~".repeat(tilde_count))
                 } else {
@@ -243,9 +274,12 @@ impl Rule for MD040FencedCodeLanguage {
                     // We're inside a code block, check if this closes it
                     if let Some(ref current_marker) = current_fence_marker {
                         let current_indent = line.len() - line.trim_start().len();
-                        if fence_marker == *current_marker &&
-                           trimmed[current_marker.len()..].trim().is_empty() &&
-                           current_indent <= opening_fence_indent {
+                        if fence_marker == *current_marker
+                            && trimmed[current_marker.len()..]
+                                .trim()
+                                .is_empty()
+                            && current_indent <= opening_fence_indent
+                        {
                             // This closes the current code block
                             if fence_needs_language {
                                 // Use the same indentation as the opening fence

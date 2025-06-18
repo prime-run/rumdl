@@ -26,13 +26,13 @@ impl MD043RequiredHeadings {
 
     fn extract_headings(&self, ctx: &crate::lint_context::LintContext) -> Vec<String> {
         let mut result = Vec::new();
-        
+
         for line_info in &ctx.lines {
             if let Some(heading) = &line_info.heading {
                 result.push(heading.text.trim().to_string());
             }
         }
-        
+
         result
     }
 
@@ -72,16 +72,13 @@ impl Rule for MD043RequiredHeadings {
                     column: 1,
                     end_line: 1,
                     end_column: 2,
-                    message: format!(
-                        "Required headings not found: {:?}",
-                        self.headings
-                    ),
+                    message: format!("Required headings not found: {:?}", self.headings),
                     severity: Severity::Warning,
                     fix: None,
                 });
                 return Ok(warnings);
             }
-            
+
             // Create warnings for each heading that doesn't match
             for (i, line_info) in ctx.lines.iter().enumerate() {
                 if self.is_heading(i, ctx) {
@@ -102,7 +99,7 @@ impl Rule for MD043RequiredHeadings {
                     });
                 }
             }
-            
+
             // If we have no warnings but headings don't match (could happen if we have no headings),
             // add a warning at the beginning of the file
             if warnings.is_empty() {
@@ -168,8 +165,11 @@ impl Rule for MD043RequiredHeadings {
         }
 
         // Check if any heading exists using cached information
-        let has_heading = ctx.lines.iter().any(|line| line.heading.is_some());
-        
+        let has_heading = ctx
+            .lines
+            .iter()
+            .any(|line| line.heading.is_some());
+
         !has_heading
     }
 
@@ -207,7 +207,10 @@ mod tests {
     #[test]
     fn test_extract_headings_code_blocks() {
         // Create rule with required headings
-        let required = vec!["Test Document".to_string(), "Real heading 2".to_string()];
+        let required = vec![
+            "Test Document".to_string(),
+            "Real heading 2".to_string(),
+        ];
         let rule = MD043RequiredHeadings::new(required);
 
         // Test 1: Basic content with code block
@@ -216,7 +219,10 @@ mod tests {
         let actual_headings = rule.extract_headings(&ctx);
         assert_eq!(
             actual_headings,
-            vec!["Test Document".to_string(), "Real heading 2".to_string()],
+            vec![
+                "Test Document".to_string(),
+                "Real heading 2".to_string()
+            ],
             "Should extract correct headings and ignore code blocks"
         );
 

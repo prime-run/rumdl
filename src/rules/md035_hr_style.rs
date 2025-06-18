@@ -3,7 +3,7 @@
 //!
 //! See [docs/md035.md](../../docs/md035.md) for full documentation, configuration, and examples.
 
-use crate::utils::range_utils::{calculate_line_range, LineIndex};
+use crate::utils::range_utils::{LineIndex, calculate_line_range};
 
 use crate::rule::{Fix, LintError, LintResult, LintWarning, Rule, Severity};
 use lazy_static::lazy_static;
@@ -42,7 +42,7 @@ impl MD035HRStyle {
             config: MD035Config { style },
         }
     }
-    
+
     pub fn from_config_struct(config: MD035Config) -> Self {
         Self { config }
     }
@@ -207,7 +207,10 @@ impl Rule for MD035HRStyle {
 
     fn default_config_section(&self) -> Option<(String, toml::Value)> {
         let mut map = toml::map::Map::new();
-        map.insert("style".to_string(), toml::Value::String(self.config.style.clone()));
+        map.insert(
+            "style".to_string(),
+            toml::Value::String(self.config.style.clone()),
+        );
         Some((self.name().to_string(), toml::Value::Table(map)))
     }
 
