@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use colored::*;
-use ignore::overrides::OverrideBuilder;
 use ignore::WalkBuilder;
+use ignore::overrides::OverrideBuilder;
 use memmap2::Mmap;
 use rayon::prelude::*;
 use std::collections::HashSet;
@@ -20,8 +20,8 @@ use rumdl::rules::code_block_utils::CodeBlockStyle;
 use rumdl::rules::code_fence_utils::CodeFenceStyle;
 use rumdl::rules::strong_style::StrongStyle;
 
-use rumdl_config::normalize_key;
 use rumdl_config::ConfigSource;
+use rumdl_config::normalize_key;
 
 /// Threshold for using memory-mapped I/O (1MB)
 const MMAP_THRESHOLD: u64 = 1024 * 1024;
@@ -64,26 +64,27 @@ fn load_config_with_cli_error_handling_with_dir(
     let result = if let Some(dir) = discovery_dir {
         // Temporarily change working directory for config discovery
         let original_dir = std::env::current_dir().ok();
-        
+
         // Change to the discovery directory if it exists
         if dir.is_dir() {
             let _ = std::env::set_current_dir(dir);
         } else if let Some(parent) = dir.parent() {
             let _ = std::env::set_current_dir(parent);
         }
-        
-        let config_result = rumdl_config::SourcedConfig::load_with_discovery(config_path, None, no_config);
-        
+
+        let config_result =
+            rumdl_config::SourcedConfig::load_with_discovery(config_path, None, no_config);
+
         // Restore original directory
         if let Some(orig) = original_dir {
             let _ = std::env::set_current_dir(orig);
         }
-        
+
         config_result
     } else {
         rumdl_config::SourcedConfig::load_with_discovery(config_path, None, no_config)
     };
-    
+
     match result {
         Ok(config) => config,
         Err(e) => {
@@ -108,7 +109,11 @@ struct Cli {
     paths: Vec<String>,
 
     /// Path to configuration file
-    #[arg(long, global = true, help = "Path to configuration file")]
+    #[arg(
+        long,
+        global = true,
+        help = "Path to configuration file"
+    )]
     config: Option<String>,
 
     /// Ignore all configuration files and use built-in defaults
@@ -120,11 +125,21 @@ struct Cli {
     no_config: bool,
 
     /// Fix issues automatically where possible
-    #[arg(short, long, default_value = "false", hide = true)]
+    #[arg(
+        short,
+        long,
+        default_value = "false",
+        hide = true
+    )]
     _fix: bool,
 
     /// List all available rules
-    #[arg(short, long, default_value = "false", hide = true)]
+    #[arg(
+        short,
+        long,
+        default_value = "false",
+        hide = true
+    )]
     list_rules: bool,
 
     /// Disable specific rules (comma-separated)
@@ -185,9 +200,15 @@ enum Commands {
         #[command(subcommand)]
         subcmd: Option<ConfigSubcommand>,
         /// Show only the default configuration values
-        #[arg(long, help = "Show only the default configuration values")]
+        #[arg(
+            long,
+            help = "Show only the default configuration values"
+        )]
         defaults: bool,
-        #[arg(long, help = "Output format (e.g. toml, json)")]
+        #[arg(
+            long,
+            help = "Output format (e.g. toml, json)"
+        )]
         output: Option<String>,
     },
     /// Start the Language Server Protocol server
@@ -289,11 +310,18 @@ struct CheckArgs {
     quiet: bool,
 
     /// Output format: text (default) or json
-    #[arg(long, short = 'o', default_value = "text")]
+    #[arg(
+        long,
+        short = 'o',
+        default_value = "text"
+    )]
     output: String,
 
     /// Read from stdin instead of files
-    #[arg(long, help = "Read from stdin instead of files")]
+    #[arg(
+        long,
+        help = "Read from stdin instead of files"
+    )]
     stdin: bool,
 }
 
@@ -323,18 +351,30 @@ fn get_enabled_rules_from_checkargs(
     });
 
     // Rule names provided via config file
-    let config_enable_set: HashSet<&str> =
-        config.global.enable.iter().map(|s| s.as_str()).collect();
+    let config_enable_set: HashSet<&str> = config
+        .global
+        .enable
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
 
-    let config_disable_set: HashSet<&str> =
-        config.global.disable.iter().map(|s| s.as_str()).collect();
+    let config_disable_set: HashSet<&str> = config
+        .global
+        .disable
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
 
     if let Some(enabled_cli) = &cli_enable_set {
         // Normalize CLI enable values
-        let enabled_cli_normalized: HashSet<String> =
-            enabled_cli.iter().map(|s| normalize_key(s)).collect();
-        let _all_rule_names: Vec<String> =
-            all_rules.iter().map(|r| normalize_key(r.name())).collect();
+        let enabled_cli_normalized: HashSet<String> = enabled_cli
+            .iter()
+            .map(|s| normalize_key(s))
+            .collect();
+        let _all_rule_names: Vec<String> = all_rules
+            .iter()
+            .map(|r| normalize_key(r.name()))
+            .collect();
         final_rules = all_rules
             .into_iter()
             .filter(|rule| enabled_cli_normalized.contains(&normalize_key(rule.name())))
@@ -400,7 +440,10 @@ fn find_markdown_files(
 
     // --- Configure ignore::WalkBuilder ---
     // Start with the first path, add others later
-    let first_path = paths.first().cloned().unwrap_or_else(|| ".".to_string());
+    let first_path = paths
+        .first()
+        .cloned()
+        .unwrap_or_else(|| ".".to_string());
     let mut walk_builder = WalkBuilder::new(first_path);
 
     // Add remaining paths
@@ -411,8 +454,12 @@ fn find_markdown_files(
     // --- Add Markdown File Type Definition ---
     let mut types_builder = ignore::types::TypesBuilder::new();
     types_builder.add_defaults(); // Add standard types
-    types_builder.add("markdown", "*.md").unwrap();
-    types_builder.add("markdown", "*.markdown").unwrap();
+    types_builder
+        .add("markdown", "*.md")
+        .unwrap();
+    types_builder
+        .add("markdown", "*.markdown")
+        .unwrap();
     types_builder.select("markdown"); // Select ONLY markdown for processing
     let types = types_builder.build().unwrap();
     walk_builder.types(types);
@@ -453,7 +500,7 @@ fn find_markdown_files(
     } else {
         config.global.exclude.clone()
     };
-    
+
     // Debug: Log exclude patterns
     if args.verbose {
         eprintln!("Exclude patterns: {:?}", final_exclude_patterns);
@@ -512,7 +559,7 @@ fn find_markdown_files(
     walk_builder.parents(use_gitignore); // Enable/disable parent ignores
     walk_builder.hidden(true); // Keep hidden files ignored unconditionally
     walk_builder.require_git(false); // Process git ignores even if no repo detected
-    
+
     // Add support for .markdownlintignore file
     walk_builder.add_custom_ignore_filename(".markdownlintignore");
 
@@ -739,7 +786,10 @@ fn print_config_with_provenance(sourced: &rumdl_config::SourcedConfig) {
         Box::new(MD056TableColumnCount),
         Box::new(MD058BlanksAroundTables),
     ];
-    let mut rule_names: Vec<_> = all_rules.iter().map(|r| r.name().to_string()).collect();
+    let mut rule_names: Vec<_> = all_rules
+        .iter()
+        .map(|r| r.name().to_string())
+        .collect();
     rule_names.sort();
     for rule_name in rule_names {
         let mut lines = Vec::new();
@@ -751,7 +801,10 @@ fn print_config_with_provenance(sourced: &rumdl_config::SourcedConfig) {
                 let sv = &rule_cfg.values[key];
                 let value_str = match &sv.value {
                     toml::Value::Array(arr) => {
-                        let vals: Vec<String> = arr.iter().map(|v| v.to_string()).collect();
+                        let vals: Vec<String> = arr
+                            .iter()
+                            .map(|v| v.to_string())
+                            .collect();
                         format!("[{}]", vals.join(", "))
                     }
                     toml::Value::String(s) => format!("\"{}\"", s),
@@ -778,7 +831,10 @@ fn print_config_with_provenance(sourced: &rumdl_config::SourcedConfig) {
                     let v = &table[key];
                     let value_str = match v {
                         toml::Value::Array(arr) => {
-                            let vals: Vec<String> = arr.iter().map(|v| v.to_string()).collect();
+                            let vals: Vec<String> = arr
+                                .iter()
+                                .map(|v| v.to_string())
+                                .collect();
                             format!("[{}]", vals.join(", "))
                         }
                         toml::Value::String(s) => format!("\"{}\"", s),
@@ -803,7 +859,11 @@ fn print_config_with_provenance(sourced: &rumdl_config::SourcedConfig) {
             all_lines.push((String::new(), String::new()));
         }
     }
-    let max_left = all_lines.iter().map(|(l, _)| l.len()).max().unwrap_or(0);
+    let max_left = all_lines
+        .iter()
+        .map(|(l, _)| l.len())
+        .max()
+        .unwrap_or(0);
     for (left, right) in &all_lines {
         if left.is_empty() && right.is_empty() {
             println!();
@@ -822,7 +882,10 @@ fn format_toml_value(val: &toml::Value) -> String {
         toml::Value::Float(f) => f.to_string(),
         toml::Value::Boolean(b) => b.to_string(),
         toml::Value::Array(arr) => {
-            let vals: Vec<String> = arr.iter().map(format_toml_value).collect();
+            let vals: Vec<String> = arr
+                .iter()
+                .map(format_toml_value)
+                .collect();
             format!("[{}]", vals.join(", "))
         }
         toml::Value::Table(_) => "<table>".to_string(),
@@ -833,17 +896,19 @@ fn format_toml_value(val: &toml::Value) -> String {
 /// Offer to install the VS Code extension during init
 fn offer_vscode_extension_install() {
     use rumdl::vscode::VsCodeExtension;
-    
+
     // Check if we're in an integrated terminal
     if let Some((cmd, editor_name)) = VsCodeExtension::current_editor_from_env() {
         println!("\nDetected you're using {}.", editor_name.green());
         println!("Would you like to install the rumdl extension? [Y/n]");
         print!("> ");
         io::stdout().flush().unwrap();
-        
+
         let mut answer = String::new();
-        io::stdin().read_line(&mut answer).unwrap();
-        
+        io::stdin()
+            .read_line(&mut answer)
+            .unwrap();
+
         if answer.trim().is_empty() || answer.trim().eq_ignore_ascii_case("y") {
             match VsCodeExtension::with_command(cmd) {
                 Ok(vscode) => {
@@ -859,7 +924,7 @@ fn offer_vscode_extension_install() {
     } else {
         // Check for available editors
         let available_editors = VsCodeExtension::find_all_editors();
-        
+
         match available_editors.len() {
             0 => {
                 // No editors found, skip silently
@@ -868,13 +933,17 @@ fn offer_vscode_extension_install() {
                 // Single editor found
                 let (cmd, editor_name) = available_editors[0];
                 println!("\n{} detected.", editor_name.green());
-                println!("Would you like to install the rumdl extension for real-time linting? [y/N]");
+                println!(
+                    "Would you like to install the rumdl extension for real-time linting? [y/N]"
+                );
                 print!("> ");
                 io::stdout().flush().unwrap();
-                
+
                 let mut answer = String::new();
-                io::stdin().read_line(&mut answer).unwrap();
-                
+                io::stdin()
+                    .read_line(&mut answer)
+                    .unwrap();
+
                 if answer.trim().eq_ignore_ascii_case("y") {
                     match VsCodeExtension::with_command(cmd) {
                         Ok(vscode) => {
@@ -894,14 +963,19 @@ fn offer_vscode_extension_install() {
                 for (i, (_, editor_name)) in available_editors.iter().enumerate() {
                     println!("  {}. {}", i + 1, editor_name);
                 }
-                println!("\nInstall the rumdl extension? [1-{}/a=all/n=none]:", available_editors.len());
+                println!(
+                    "\nInstall the rumdl extension? [1-{}/a=all/n=none]:",
+                    available_editors.len()
+                );
                 print!("> ");
                 io::stdout().flush().unwrap();
-                
+
                 let mut answer = String::new();
-                io::stdin().read_line(&mut answer).unwrap();
+                io::stdin()
+                    .read_line(&mut answer)
+                    .unwrap();
                 let answer = answer.trim().to_lowercase();
-                
+
                 if answer == "a" || answer == "all" {
                     // Install in all editors
                     for (cmd, editor_name) in &available_editors {
@@ -936,9 +1010,12 @@ fn offer_vscode_extension_install() {
             }
         }
     }
-    
+
     println!("\nSetup complete! You can now:");
-    println!("  • Run {} to lint your Markdown files", "rumdl check .".cyan());
+    println!(
+        "  • Run {} to lint your Markdown files",
+        "rumdl check .".cyan()
+    );
     println!("  • Open your editor to see real-time linting");
 }
 
@@ -963,12 +1040,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     if Path::new("pyproject.toml").exists() {
                         // pyproject.toml exists, ask to append
-                        println!("pyproject.toml already exists. Would you like to append rumdl configuration? [y/N]");
+                        println!(
+                            "pyproject.toml already exists. Would you like to append rumdl configuration? [y/N]"
+                        );
                         print!("> ");
                         io::stdout().flush().unwrap();
 
                         let mut answer = String::new();
-                        io::stdin().read_line(&mut answer).unwrap();
+                        io::stdin()
+                            .read_line(&mut answer)
+                            .unwrap();
 
                         if answer.trim().eq_ignore_ascii_case("y") {
                             // Append to existing file
@@ -976,8 +1057,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 Ok(content) => {
                                     // Check if [tool.rumdl] section already exists
                                     if content.contains("[tool.rumdl]") {
-                                        println!("The pyproject.toml file already contains a [tool.rumdl] section.");
-                                        println!("Please edit the file manually to avoid overwriting existing configuration.");
+                                        println!(
+                                            "The pyproject.toml file already contains a [tool.rumdl] section."
+                                        );
+                                        println!(
+                                            "Please edit the file manually to avoid overwriting existing configuration."
+                                        );
                                     }
 
                                     // Append with a blank line for separation
@@ -1038,7 +1123,7 @@ build-backend = \"setuptools.build_meta\"
                 match rumdl_config::create_default_config(".rumdl.toml") {
                     Ok(_) => {
                         println!("Created default configuration file: .rumdl.toml");
-                        
+
                         // Offer to install VS Code extension
                         offer_vscode_extension_install();
                     }
@@ -1119,7 +1204,8 @@ build-backend = \"setuptools.build_meta\"
                 if let Some(rule_query) = rule {
                     let rule_query = rule_query.to_ascii_uppercase();
                     let found = all_rules.iter().find(|r| {
-                        r.name().eq_ignore_ascii_case(&rule_query)
+                        r.name()
+                            .eq_ignore_ascii_case(&rule_query)
                             || r.name().replace("MD", "") == rule_query.replace("MD", "")
                     });
                     if let Some(rule) = found {
@@ -1261,8 +1347,9 @@ build-backend = \"setuptools.build_meta\"
                             } else {
                                 let all_rules =
                                     rumdl::rules::all_rules(&rumdl_config::Config::default());
-                                if let Some(rule) =
-                                    all_rules.iter().find(|r| r.name() == section_part)
+                                if let Some(rule) = all_rules
+                                    .iter()
+                                    .find(|r| r.name() == section_part)
                                 {
                                     if let Some((_, toml::Value::Table(table))) =
                                         rule.default_config_section()
@@ -1292,7 +1379,8 @@ build-backend = \"setuptools.build_meta\"
                 }
                 // Handle 'config file' subcommand for showing config file path
                 else if let Some(ConfigSubcommand::File) = subcmd {
-                    let sourced = load_config_with_cli_error_handling(cli.config.as_deref(), cli.no_config);
+                    let sourced =
+                        load_config_with_cli_error_handling(cli.config.as_deref(), cli.no_config);
 
                     if sourced.loaded_files.is_empty() {
                         if cli.no_config {
@@ -1330,7 +1418,8 @@ build-backend = \"setuptools.build_meta\"
                         for rule in &all_rules_reg {
                             if let Some((rule_name, config_value)) = rule.default_config_section() {
                                 if let toml::Value::Table(table) = config_value {
-                                    let mut rule_config = rumdl_config::SourcedRuleConfig::default();
+                                    let mut rule_config =
+                                        rumdl_config::SourcedRuleConfig::default();
                                     for (key, value) in table {
                                         rule_config.values.insert(
                                             key.clone(),
@@ -1340,7 +1429,9 @@ build-backend = \"setuptools.build_meta\"
                                             ),
                                         );
                                     }
-                                    default_sourced.rules.insert(rule_name.to_uppercase(), rule_config);
+                                    default_sourced
+                                        .rules
+                                        .insert(rule_name.to_uppercase(), rule_config);
                                 }
                             }
                         }
@@ -1371,11 +1462,15 @@ build-backend = \"setuptools.build_meta\"
 
                             // Add all rule default configurations
                             for rule in &all_rules_reg {
-                                if let Some((rule_name, config_value)) = rule.default_config_section() {
+                                if let Some((rule_name, config_value)) =
+                                    rule.default_config_section()
+                                {
                                     if let toml::Value::Table(table) = config_value {
                                         let mut rule_config = rumdl_config::RuleConfig::default();
                                         rule_config.values = table.into_iter().collect();
-                                        default_config.rules.insert(rule_name.to_uppercase(), rule_config);
+                                        default_config
+                                            .rules
+                                            .insert(rule_name.to_uppercase(), rule_config);
                                     }
                                 }
                             }
@@ -1388,7 +1483,8 @@ build-backend = \"setuptools.build_meta\"
                                 }
                             }
                         } else {
-                            let config_to_print: rumdl_config::Config = final_sourced_to_print.into();
+                            let config_to_print: rumdl_config::Config =
+                                final_sourced_to_print.into();
                             match toml::to_string_pretty(&config_to_print) {
                                 Ok(s) => println!("{}", s),
                                 Err(e) => {
@@ -1441,7 +1537,12 @@ build-backend = \"setuptools.build_meta\"
                     }
                 });
             }
-            Some(Commands::Import { file, output, format, dry_run }) => {
+            Some(Commands::Import {
+                file,
+                output,
+                format,
+                dry_run,
+            }) => {
                 use rumdl::markdownlint_config;
 
                 // Load the markdownlint config file
@@ -1463,24 +1564,42 @@ build-backend = \"setuptools.build_meta\"
                         let mut output = String::new();
 
                         // Add global settings if any
-                        if !fragment.global.enable.value.is_empty() || !fragment.global.disable.value.is_empty() ||
-                           !fragment.global.exclude.value.is_empty() || !fragment.global.include.value.is_empty() ||
-                           fragment.global.line_length.value != 80 {
+                        if !fragment.global.enable.value.is_empty()
+                            || !fragment.global.disable.value.is_empty()
+                            || !fragment.global.exclude.value.is_empty()
+                            || !fragment.global.include.value.is_empty()
+                            || fragment.global.line_length.value != 80
+                        {
                             output.push_str("[global]\n");
                             if !fragment.global.enable.value.is_empty() {
-                                output.push_str(&format!("enable = {:?}\n", fragment.global.enable.value));
+                                output.push_str(&format!(
+                                    "enable = {:?}\n",
+                                    fragment.global.enable.value
+                                ));
                             }
                             if !fragment.global.disable.value.is_empty() {
-                                output.push_str(&format!("disable = {:?}\n", fragment.global.disable.value));
+                                output.push_str(&format!(
+                                    "disable = {:?}\n",
+                                    fragment.global.disable.value
+                                ));
                             }
                             if !fragment.global.exclude.value.is_empty() {
-                                output.push_str(&format!("exclude = {:?}\n", fragment.global.exclude.value));
+                                output.push_str(&format!(
+                                    "exclude = {:?}\n",
+                                    fragment.global.exclude.value
+                                ));
                             }
                             if !fragment.global.include.value.is_empty() {
-                                output.push_str(&format!("include = {:?}\n", fragment.global.include.value));
+                                output.push_str(&format!(
+                                    "include = {:?}\n",
+                                    fragment.global.include.value
+                                ));
                             }
                             if fragment.global.line_length.value != 80 {
-                                output.push_str(&format!("line_length = {}\n", fragment.global.line_length.value));
+                                output.push_str(&format!(
+                                    "line_length = {}\n",
+                                    fragment.global.line_length.value
+                                ));
                             }
                             output.push('\n');
                         }
@@ -1496,13 +1615,22 @@ build-backend = \"setuptools.build_meta\"
                                     }
 
                                     match &sourced_value.value {
-                                        toml::Value::String(s) => output.push_str(&format!("{} = \"{}\"\n", key, s)),
-                                        toml::Value::Integer(i) => output.push_str(&format!("{} = {}\n", key, i)),
-                                        toml::Value::Float(f) => output.push_str(&format!("{} = {}\n", key, f)),
-                                        toml::Value::Boolean(b) => output.push_str(&format!("{} = {}\n", key, b)),
+                                        toml::Value::String(s) => {
+                                            output.push_str(&format!("{} = \"{}\"\n", key, s))
+                                        }
+                                        toml::Value::Integer(i) => {
+                                            output.push_str(&format!("{} = {}\n", key, i))
+                                        }
+                                        toml::Value::Float(f) => {
+                                            output.push_str(&format!("{} = {}\n", key, f))
+                                        }
+                                        toml::Value::Boolean(b) => {
+                                            output.push_str(&format!("{} = {}\n", key, b))
+                                        }
                                         toml::Value::Array(arr) => {
                                             // Format arrays properly for TOML
-                                            let arr_str = arr.iter()
+                                            let arr_str = arr
+                                                .iter()
                                                 .map(|v| match v {
                                                     toml::Value::String(s) => format!("\"{}\"", s),
                                                     _ => format!("{}", v),
@@ -1510,19 +1638,30 @@ build-backend = \"setuptools.build_meta\"
                                                 .collect::<Vec<_>>()
                                                 .join(", ");
                                             output.push_str(&format!("{} = [{}]\n", key, arr_str));
-                                        },
+                                        }
                                         _ => {
                                             // Use proper TOML serialization for complex values
-                                            if let Ok(toml_str) = toml::to_string_pretty(&sourced_value.value) {
+                                            if let Ok(toml_str) =
+                                                toml::to_string_pretty(&sourced_value.value)
+                                            {
                                                 // Remove the table wrapper if it's just a value
                                                 let clean_value = toml_str.trim();
                                                 if !clean_value.starts_with('[') {
-                                                    output.push_str(&format!("{} = {}", key, clean_value));
+                                                    output.push_str(&format!(
+                                                        "{} = {}",
+                                                        key, clean_value
+                                                    ));
                                                 } else {
-                                                    output.push_str(&format!("{} = {:?}\n", key, sourced_value.value));
+                                                    output.push_str(&format!(
+                                                        "{} = {:?}\n",
+                                                        key, sourced_value.value
+                                                    ));
                                                 }
                                             } else {
-                                                output.push_str(&format!("{} = {:?}\n", key, sourced_value.value));
+                                                output.push_str(&format!(
+                                                    "{} = {:?}\n",
+                                                    key, sourced_value.value
+                                                ));
                                             }
                                         }
                                     }
@@ -1531,42 +1670,85 @@ build-backend = \"setuptools.build_meta\"
                             }
                         }
                         output
-                    },
+                    }
                     "json" => {
                         // Convert to JSON format (similar to pyproject.toml structure)
                         let mut json_config = serde_json::Map::new();
 
                         // Add global settings
-                        if !fragment.global.enable.value.is_empty() || !fragment.global.disable.value.is_empty() ||
-                           !fragment.global.exclude.value.is_empty() || !fragment.global.include.value.is_empty() ||
-                           fragment.global.line_length.value != 80 {
+                        if !fragment.global.enable.value.is_empty()
+                            || !fragment.global.disable.value.is_empty()
+                            || !fragment.global.exclude.value.is_empty()
+                            || !fragment.global.include.value.is_empty()
+                            || fragment.global.line_length.value != 80
+                        {
                             let mut global = serde_json::Map::new();
                             if !fragment.global.enable.value.is_empty() {
-                                global.insert("enable".to_string(), serde_json::Value::Array(
-                                    fragment.global.enable.value.iter().map(|s| serde_json::Value::String(s.clone())).collect()
-                                ));
+                                global.insert(
+                                    "enable".to_string(),
+                                    serde_json::Value::Array(
+                                        fragment
+                                            .global
+                                            .enable
+                                            .value
+                                            .iter()
+                                            .map(|s| serde_json::Value::String(s.clone()))
+                                            .collect(),
+                                    ),
+                                );
                             }
                             if !fragment.global.disable.value.is_empty() {
-                                global.insert("disable".to_string(), serde_json::Value::Array(
-                                    fragment.global.disable.value.iter().map(|s| serde_json::Value::String(s.clone())).collect()
-                                ));
+                                global.insert(
+                                    "disable".to_string(),
+                                    serde_json::Value::Array(
+                                        fragment
+                                            .global
+                                            .disable
+                                            .value
+                                            .iter()
+                                            .map(|s| serde_json::Value::String(s.clone()))
+                                            .collect(),
+                                    ),
+                                );
                             }
                             if !fragment.global.exclude.value.is_empty() {
-                                global.insert("exclude".to_string(), serde_json::Value::Array(
-                                    fragment.global.exclude.value.iter().map(|s| serde_json::Value::String(s.clone())).collect()
-                                ));
+                                global.insert(
+                                    "exclude".to_string(),
+                                    serde_json::Value::Array(
+                                        fragment
+                                            .global
+                                            .exclude
+                                            .value
+                                            .iter()
+                                            .map(|s| serde_json::Value::String(s.clone()))
+                                            .collect(),
+                                    ),
+                                );
                             }
                             if !fragment.global.include.value.is_empty() {
-                                global.insert("include".to_string(), serde_json::Value::Array(
-                                    fragment.global.include.value.iter().map(|s| serde_json::Value::String(s.clone())).collect()
-                                ));
+                                global.insert(
+                                    "include".to_string(),
+                                    serde_json::Value::Array(
+                                        fragment
+                                            .global
+                                            .include
+                                            .value
+                                            .iter()
+                                            .map(|s| serde_json::Value::String(s.clone()))
+                                            .collect(),
+                                    ),
+                                );
                             }
                             if fragment.global.line_length.value != 80 {
-                                global.insert("line_length".to_string(), serde_json::Value::Number(
-                                    serde_json::Number::from(fragment.global.line_length.value)
-                                ));
+                                global.insert(
+                                    "line_length".to_string(),
+                                    serde_json::Value::Number(serde_json::Number::from(
+                                        fragment.global.line_length.value,
+                                    )),
+                                );
                             }
-                            json_config.insert("global".to_string(), serde_json::Value::Object(global));
+                            json_config
+                                .insert("global".to_string(), serde_json::Value::Object(global));
                         }
 
                         // Add rule-specific settings
@@ -1574,21 +1756,32 @@ build-backend = \"setuptools.build_meta\"
                             if !rule_config.values.is_empty() {
                                 let mut rule_obj = serde_json::Map::new();
                                 for (key, sourced_value) in &rule_config.values {
-                                    if let Ok(json_value) = serde_json::to_value(&sourced_value.value) {
+                                    if let Ok(json_value) =
+                                        serde_json::to_value(&sourced_value.value)
+                                    {
                                         rule_obj.insert(key.clone(), json_value);
                                     }
                                 }
-                                json_config.insert(rule_name.clone(), serde_json::Value::Object(rule_obj));
+                                json_config
+                                    .insert(rule_name.clone(), serde_json::Value::Object(rule_obj));
                             }
                         }
 
                         serde_json::to_string_pretty(&json_config).unwrap_or_else(|e| {
-                            eprintln!("{}: Failed to serialize to JSON: {}", "Error".red().bold(), e);
+                            eprintln!(
+                                "{}: Failed to serialize to JSON: {}",
+                                "Error".red().bold(),
+                                e
+                            );
                             std::process::exit(1);
                         })
-                    },
+                    }
                     _ => {
-                        eprintln!("{}: Unsupported format '{}'. Use 'toml' or 'json'.", "Error".red().bold(), format);
+                        eprintln!(
+                            "{}: Unsupported format '{}'. Use 'toml' or 'json'.",
+                            "Error".red().bold(),
+                            format
+                        );
                         std::process::exit(1);
                     }
                 };
@@ -1598,22 +1791,38 @@ build-backend = \"setuptools.build_meta\"
                     println!("{}", output_content);
                 } else {
                     // Write to output file
-                    let output_path = output.as_deref().unwrap_or(
-                        if format == "json" { "rumdl-config.json" } else { ".rumdl.toml" }
-                    );
+                    let output_path = output
+                        .as_deref()
+                        .unwrap_or(if format == "json" {
+                            "rumdl-config.json"
+                        } else {
+                            ".rumdl.toml"
+                        });
 
                     if Path::new(output_path).exists() {
-                        eprintln!("{}: Output file '{}' already exists", "Error".red().bold(), output_path);
+                        eprintln!(
+                            "{}: Output file '{}' already exists",
+                            "Error".red().bold(),
+                            output_path
+                        );
                         std::process::exit(1);
                     }
 
                     match fs::write(output_path, output_content) {
                         Ok(_) => {
-                            println!("Converted markdownlint config from '{}' to '{}'", file, output_path);
+                            println!(
+                                "Converted markdownlint config from '{}' to '{}'",
+                                file, output_path
+                            );
                             println!("You can now use: rumdl check --config {} .", output_path);
-                        },
+                        }
                         Err(e) => {
-                            eprintln!("{}: Failed to write to '{}': {}", "Error".red().bold(), output_path, e);
+                            eprintln!(
+                                "{}: Failed to write to '{}': {}",
+                                "Error".red().bold(),
+                                output_path,
+                                e
+                            );
                             std::process::exit(1);
                         }
                     }
@@ -1622,7 +1831,7 @@ build-backend = \"setuptools.build_meta\"
             Some(Commands::Vscode { force, status }) => {
                 // Handle VS Code extension installation
                 match rumdl::vscode::handle_vscode_command(*force, *status) {
-                    Ok(_) => {},
+                    Ok(_) => {}
                     Err(e) => {
                         eprintln!("{}: {}", "Error".red().bold(), e);
                         std::process::exit(1);
@@ -1651,13 +1860,16 @@ build-backend = \"setuptools.build_meta\"
                         output: "text".to_string(),
                         stdin: false,
                     };
-                    eprintln!("{}: Deprecation warning: Running 'rumdl .' or 'rumdl [PATHS...]' without a subcommand is deprecated and will be removed in a future release. Please use 'rumdl check .' instead.", "[rumdl]".yellow().bold());
+                    eprintln!(
+                        "{}: Deprecation warning: Running 'rumdl .' or 'rumdl [PATHS...]' without a subcommand is deprecated and will be removed in a future release. Please use 'rumdl check .' instead.",
+                        "[rumdl]".yellow().bold()
+                    );
                     run_check(&args, cli.config.as_deref(), cli.no_config);
                 } else {
                     eprintln!(
-                "{}: No files or directories specified. Please provide at least one path to lint.",
-                "Error".red().bold()
-            );
+                        "{}: No files or directories specified. Please provide at least one path to lint.",
+                        "Error".red().bold()
+                    );
                     std::process::exit(1);
                 }
             }
@@ -1767,9 +1979,10 @@ fn run_check(args: &CheckArgs, global_config_path: Option<&str>, no_config: bool
     } else {
         None
     };
-    
+
     // 1. Load sourced config (for provenance and validation)
-    let sourced = load_config_with_cli_error_handling_with_dir(global_config_path, no_config, discovery_dir);
+    let sourced =
+        load_config_with_cli_error_handling_with_dir(global_config_path, no_config, discovery_dir);
 
     // 2. Validate config (unknown keys/rules/options)
     let all_rules = rumdl::rules::all_rules(&rumdl_config::Config::default());
@@ -1990,13 +2203,13 @@ fn process_file(
     let lint_start = Instant::now();
     // Set the environment variable for the file path
     // This allows rules like MD057 to know which file is being processed
-    std::env::set_var("RUMDL_FILE_PATH", file_path);
+    unsafe { std::env::set_var("RUMDL_FILE_PATH", file_path) };
 
     // Use the standard lint function
     let warnings_result = rumdl::lint(&content, rules, verbose);
 
     // Clear the environment variable after processing
-    std::env::remove_var("RUMDL_FILE_PATH");
+    unsafe { std::env::remove_var("RUMDL_FILE_PATH") };
 
     // Combine all warnings
     let mut all_warnings = warnings_result.unwrap_or_default();
@@ -2013,7 +2226,10 @@ fn process_file(
     let total_warnings = all_warnings.len();
 
     // Count fixable issues
-    let fixable_warnings = all_warnings.iter().filter(|w| w.fix.is_some()).count();
+    let fixable_warnings = all_warnings
+        .iter()
+        .filter(|w| w.fix.is_some())
+        .count();
 
     // If no warnings, return early
     if total_warnings == 0 {
@@ -2028,11 +2244,7 @@ fn process_file(
 
             // Add fix indicator if this warning has a fix
             let fix_indicator = if warning.fix.is_some() {
-                if _fix {
-                    " [fixed]"
-                } else {
-                    " [*]"
-                }
+                if _fix { " [fixed]" } else { " [*]" }
             } else {
                 ""
             };
@@ -2071,23 +2283,23 @@ fn process_file(
                 });
 
                 if has_non_disabled_warnings {
-                let ctx = LintContext::new(&content);
-                match rule.fix(&ctx) {
-                    Ok(fixed_content) => {
-                        if fixed_content != content {
-                            content = fixed_content;
-                            // Apply fixes for this rule - we consider all warnings for the rule fixed
+                    let ctx = LintContext::new(&content);
+                    match rule.fix(&ctx) {
+                        Ok(fixed_content) => {
+                            if fixed_content != content {
+                                content = fixed_content;
+                                // Apply fixes for this rule - we consider all warnings for the rule fixed
                                 warnings_fixed += rule_warnings.len();
+                            }
                         }
-                    }
-                    Err(err) => {
-                        if !quiet {
-                            eprintln!(
-                                "{} Failed to apply fix for rule {}: {}",
-                                "Warning:".yellow().bold(),
-                                rule.name(),
-                                err
-                            );
+                        Err(err) => {
+                            if !quiet {
+                                eprintln!(
+                                    "{} Failed to apply fix for rule {}: {}",
+                                    "Warning:".yellow().bold(),
+                                    rule.name(),
+                                    err
+                                );
                             }
                         }
                     }
@@ -2147,9 +2359,9 @@ fn process_file_collect_warnings(
         }
     };
 
-    std::env::set_var("RUMDL_FILE_PATH", file_path);
+    unsafe { std::env::set_var("RUMDL_FILE_PATH", file_path) };
     let warnings_result = rumdl::lint(&content, rules, verbose);
-    std::env::remove_var("RUMDL_FILE_PATH");
+    unsafe { std::env::remove_var("RUMDL_FILE_PATH") };
     let mut all_warnings = warnings_result.unwrap_or_default();
     all_warnings.sort_by(|a, b| {
         if a.line == b.line {
