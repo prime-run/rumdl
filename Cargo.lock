@@ -1612,7 +1612,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "rumdl"
+name = "rumdl_cli"
+version = "0.0.87"
+dependencies = [
+ "anyhow",
+ "clap",
+ "colored",
+ "dialoguer",
+ "glob",
+ "ignore",
+ "indicatif",
+ "log",
+ "memmap2",
+ "rayon",
+ "regex",
+ "rumdl_core",
+ "walkdir",
+]
+
+[[package]]
+name = "rumdl_core"
 version = "0.0.87"
 dependencies = [
  "anyhow",
